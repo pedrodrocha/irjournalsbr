@@ -1,15 +1,3 @@
-#' Title
-#'
-#' @param year
-#' @param volume
-#' @param number
-#' @param silence
-#' @param full_text
-#'
-#' @return
-#' @export
-#'
-#' @examples
 austral <- function(
   year, volume, number, silence = TRUE, full_text = FALSE
 ) {
@@ -25,14 +13,13 @@ austral <- function(
 
   # PART 1: EDITIONS LINKS
 
-  url_archive <- "https://seer.ufrgs.br/austral/issue/archive"
+  url_archive <- "http://www.revistaoikos.org/seer/index.php/oikos/issue/archive"
 
   url_archive_lido <- xml2::read_html(url_archive)
 
   url_archive_lido %>%
     rvest::html_nodes("h4 a") %>%
     rvest::html_attr("href") -> primary_url
-
 
   url_archive_lido %>%
     rvest::html_nodes("h4 a") %>%
@@ -42,52 +29,36 @@ austral <- function(
   tibble::tibble(url = primary_url,
                  editions = eds) %>%
     dplyr::mutate(
-      vol = stringr::str_extract(editions, "(Vol [0-9]{2})|(Vol [0-9]{1})") %>%
-        stringr::str_replace_all(.,'Vol ','') %>%
+      vol = stringr::str_extract(editions, "(Vol. [0-9]{2})|(Vol. [0-9]{1})") %>%
+        stringr::str_replace_all(.,'Vol. ','') %>%
         as.integer(.),
-      n = stringr::str_extract(editions,'(No [0-9]{2})|(No [0-9]{1})') %>%
+      n = stringr::str_extract(editions,'No [0-9]{1}') %>%
         stringr::str_replace_all(.,'No ','') %>%
         as.integer(.),
-      ano = stringr::str_extract(editions,"[0-9]{4}") %>%
-        as.double(.),
-      url = paste0(url, "/showToc")
+      ano = stringr::str_extract(editions,"[0-9]{4}") %>%  as.integer(.)
     ) %>%
     dplyr::filter(ano %in% year &
                     n %in% number &
                     vol %in% volume) %>%
-    dplyr::pull(url) -> primary_url
+    dplyr::select(url) %>%
+    purrr::flatten_chr() -> primary_url
 
   # PART II: ARTICLES LINKS
 
-  articles_url <- purrr::map(primary_url, function(x) {
+  articles_url <- purrr::map_dfr(primary_url,.f = function(x){
 
-    url_lido <- xml2::read_html(x)
+    xml2::read_html(x) %>%
+      rvest::html_nodes(".tocTitle a") %>%
+      rvest::html_attr("href") -> artigos
 
-    url_lido %>%
-      rvest::html_nodes('.tocTitle a') %>%
-      rvest::html_attr('href')  -> links
-
-    url_lido %>%
-      rvest::html_nodes('.tocTitle a') %>%
-      rvest::html_text()  %>%
-      stringr::str_remove_all("\\n|\\t")-> names
-
-
-    tibble::tibble(
-      links = links,
-      names = names
-    ) %>%
-      dplyr::filter(
-        !stringr::str_detect(names, '(Complete Edition)|(Complete edition)')
-      ) %>%
-      dplyr::pull(links)
-
+    tibble::tibble(links = artigos)
   }) %>%
-    purrr::flatten_chr()
+    purrr::flatten_chr() %>%
+    stringr::str_replace_all(.,'view','viewArticle')
 
   # PART III: SCRAPPING METADATA
 
-  austral <- purrr::map_dfr(articles_url, function(x) {
+  oikos <- purrr::map_dfr(articles_url, function(x) {
     if(!isTRUE(silence)) {
       usethis::ui_info(paste0('Currently scrapping: ', x))
     }
@@ -103,15 +74,11 @@ austral <- function(
     ## B) Authors
 
     url_lido %>%
-      rvest::html_nodes('meta[name="citation_author"]') %>%
+      rvest::html_nodes('meta[name="DC.Creator.PersonalName"]') %>%
       rvest::html_attr('content') -> authors
 
-
-    if(length(filiation) == 0){
-      filiation <- NA
-    } else if(length(filiation) != length(authors)) {
-      filiation <- NA
-    }
+    if(length(filiation) == 0){filiation <- NA}
+    else if(length(filiation) != length(authors)) { filiation <- NA }
 
     ## C) Title
 
@@ -125,8 +92,8 @@ austral <- function(
       rvest::html_node('meta[name="DC.Description"]') %>%
       rvest::html_attr('content') -> abstract
 
-
     if(length(abstract) == 0){abstract <- NA}
+
 
     ## E) DOI
 
@@ -172,6 +139,7 @@ austral <- function(
       rvest::html_attr('content') %>%
       stringr::str_extract(.,'[0-9]{4}')-> year
 
+
     ## K) Keywords
 
     url_lido %>%
@@ -190,9 +158,6 @@ austral <- function(
     url_lido %>%
       rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
       rvest::html_attr('content') -> pdf_url
-
-    if(language == 'pt') { pdf_url <- pdf_url[1]} # Portuguese pdf
-    else if(language == 'en') { pdf_url <- pdf_url[2]} # English pdf
 
     if(full_text) {
 
@@ -215,7 +180,7 @@ austral <- function(
         edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
         idioma = language,
         doi = doi,
-        periodico = "Austral: Brazilian Journal of Strategy and International Relations",
+        periodico = "Oikos - Revista de Economia Política Internacional",
         issn = '2238-6912',
         url = x,
         pdf_url = pdf_url,
@@ -236,7 +201,7 @@ austral <- function(
         edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
         idioma = language,
         doi = doi,
-        periodico = "Austral: Brazilian Journal of Strategy and International Relations",
+        periodico = "Oikos - Revista de Economia Política Internacional",
         issn = '2316-8323',
         url = x,
         pdf_url = pdf_url
@@ -245,5 +210,5 @@ austral <- function(
 
   })
 
-  austral
+  oikos
 }

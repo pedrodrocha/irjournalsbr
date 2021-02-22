@@ -1,42 +1,26 @@
+#' Title
+#'
+#' @param year
+#' @param volume
+#' @param number
+#' @param silence
+#' @param full_text
+#'
+#' @return
+#' @export
+#'
+#' @examples
 moncoes <- function(
   year, volume, number, silence = TRUE, full_text = FALSE
 ) {
 
   # PART 0: ASSERTIONS
-
-  tryCatch(
-    assertthat::assert_that(is.numeric(year)),
-    error = function(e) {
-      stop("'year' must be numeric", call. = FALSE)
-    }
-  )
-
-  tryCatch(
-    assertthat::assert_that(is.numeric(volume)),
-    error = function(e) {
-      stop("'volume' must be numeric", call. = FALSE)
-    }
-  )
-
-  tryCatch(
-    assertthat::assert_that(is.numeric(number)),
-    error = function(e) {
-      stop("'number' must be numeric", call. = FALSE)
-    }
-  )
-
-  tryCatch(
-    assertthat::assert_that(is.logical(silence)),
-    error = function(e) {
-      stop("'silence' must be logical", call. = FALSE)
-    }
-  )
-
-  tryCatch(
-    assertthat::assert_that(is.logical(full_text)),
-    error = function(e) {
-      stop("'full_text' must be logical", call. = FALSE)
-    }
+  assert(
+    year = year,
+    volume = volume,
+    number - number,
+    silence = silence,
+    full_text = full_text
   )
 
   # PART 1: EDITIONS LINKS
