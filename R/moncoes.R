@@ -107,7 +107,7 @@ moncoes <- function(
       names = names
     ) %>%
       dplyr::filter(
-          !stringr::str_detect(names, 'edição completa')
+        !stringr::str_detect(names, 'ediÃ§Ã£o completa')
       ) %>%
       dplyr::pull(links)
 
@@ -266,7 +266,7 @@ moncoes <- function(
         edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
         idioma = language,
         doi = doi,
-        periodico = "Monções",
+        periodico = "MonÃ§Ãµes: Revista de RelaÃ§Ãµes Internacionais da UFGD",
         issn = '2316-8323',
         url = x,
         pdf_url = pdf_url,
@@ -288,7 +288,7 @@ moncoes <- function(
         edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
         idioma = language,
         doi = doi,
-        periodico = "Monções",
+        periodico = "MonÃ§Ãµes: Revista de RelaÃ§Ãµes Internacionais da UFGD",
         issn = '2316-8323',
         url = x,
         pdf_url = pdf_url
@@ -300,6 +300,3 @@ moncoes <- function(
   moncoes
 
 }
-
-
-
