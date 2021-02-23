@@ -1,16 +1,4 @@
-#' Title
-#'
-#' @param year
-#' @param volume
-#' @param number
-#' @param silence
-#' @param full_text
-#'
-#' @return
-#' @export
-#'
-#' @examples
-moncoes <- function(
+conjunturaglobal <- function(
   year, volume, number, silence = TRUE, full_text = FALSE
 ) {
 
@@ -25,22 +13,32 @@ moncoes <- function(
 
   # PART 1: EDITIONS LINKS
 
-  url_archive <- "http://ojs.ufgd.edu.br/index.php/moncoes/issue/archive"
 
-  url_archive_lido <- xml2::read_html(url_archive)
+  url_archive1 <- "https://revistas.ufpr.br/conjgloblal/issue/archive?issuesPage=1#issues"
+  url_archive2 <- "https://revistas.ufpr.br/conjgloblal/issue/archive?issuesPage=2#issues"
 
-  url_archive_lido %>%
-    rvest::html_nodes("h4") %>%
-    rvest::html_nodes("a") %>%
-    rvest::html_attr("href") -> primary_url
+  url_archive1_lido <- xml2::read_html(url_archive1)
+  url_archive2_lido <- xml2::read_html(url_archive2)
 
+  url_archive1_lido %>%
+    rvest::html_nodes("#issues h4 a") %>%
+    rvest::html_attr("href") -> primary_url1
 
-  url_archive_lido %>%
-    rvest::html_nodes("h4") %>%
-    rvest::html_nodes("a") %>%
-    rvest::html_text() %>%
-    stringr::str_remove(":(.*)") -> eds
+  url_archive2_lido %>%
+    rvest::html_nodes("#issues h4 a") %>%
+    rvest::html_attr("href") -> primary_url2
 
+  primary_url <- c(primary_url1,primary_url2)
+
+  url_archive1_lido %>%
+    rvest::html_nodes("#issues h4 a") %>%
+    rvest::html_text() -> eds1
+
+  url_archive2_lido %>%
+    rvest::html_nodes("#issues h4 a") %>%
+    rvest::html_text() -> eds2
+
+  eds <- c(eds1,eds2)
 
   tibble::tibble(url = primary_url,
                  editions = eds) %>%
@@ -52,17 +50,7 @@ moncoes <- function(
         stringr::str_replace_all(.,'n. ','') %>%
         as.integer(.),
       ano = stringr::str_extract(editions,"[0-9]{4}") %>%
-        as.double(.),
-      ano = dplyr::case_when(
-
-        vol == 4 ~ 2015,
-        vol == 3 ~ 2014,
-        vol == 2 ~ 2013,
-        vol == 1 ~ 2012,
-        TRUE ~ ano
-      ),
-      editions = paste0("v. ",vol," n. ",n," (", ano,")"),
-      url = paste0(url, "/showToc")
+        as.double(.)
     ) %>%
     dplyr::filter(ano %in% year &
                     n %in% number &
@@ -78,29 +66,15 @@ moncoes <- function(
 
     url_lido %>%
       rvest::html_nodes('.tocTitle a') %>%
-      rvest::html_attr('href')  -> links
-
-    url_lido %>%
-      rvest::html_nodes('.tocTitle a') %>%
-      rvest::html_text()  %>%
-      stringr::str_remove_all("\\n|\\t")-> names
-
-
-    tibble::tibble(
-      links = links,
-      names = names
-    ) %>%
-      dplyr::filter(
-        !stringr::str_detect(names, 'edição completa')
-      ) %>%
-      dplyr::pull(links)
+      rvest::html_attr('href')
 
   }) %>%
     purrr::flatten_chr()
 
+
   # PART III: SCRAPPING METADATA
 
-  moncoes <- purrr::map_dfr(articles_url, function(x) {
+  conjunturaglobal <- purrr::map_dfr(articles_url, function(x) {
     if(!isTRUE(silence)) {
       usethis::ui_info(paste0('Currently scrapping: ', x))
     }
@@ -108,14 +82,13 @@ moncoes <- function(
 
     url_lido <- xml2::read_html(x)
 
+
+
     ## A) Filiation
 
     url_lido %>%
       rvest::html_nodes('meta[name="citation_author_institution"]') %>%
       rvest::html_attr('content') -> filiation
-
-
-
 
     ## B) Authors
 
@@ -130,6 +103,7 @@ moncoes <- function(
       filiation <- NA
     }
 
+
     ## C) Title
 
     url_lido %>%
@@ -139,9 +113,12 @@ moncoes <- function(
     ## D) Abstract
 
     url_lido %>%
-      rvest::html_nodes("#articleAbstract div") %>%
-      rvest::html_text() -> abstract
+      rvest::html_nodes(xpath = "//div[@id='articleAbstract']") %>%
+      rvest::html_nodes("div") %>%
+      purrr::map(xml2::xml_contents) -> abstract
 
+    abstract[[1]][1] %>%
+      rvest::html_text() -> abstract
     if(length(abstract) == 0){ abstract <- NA }
 
     ## E) DOI
@@ -151,6 +128,7 @@ moncoes <- function(
       rvest::html_attr('content') -> doi
 
     if(length(doi) == 0){ doi <- NA }
+
 
     ## F) Pages
 
@@ -189,14 +167,6 @@ moncoes <- function(
       rvest::html_attr('content') %>%
       stringr::str_extract('[0-9]{4}')-> year
 
-    if(is.na(year)) {
-      if(volume == 1) { year <- "2012"}
-      else if(volume == 2) {year <- "2013"}
-      else if(volume == 3) {year <- "2014"}
-      else if(volume == 4) {year <- "2015"}
-    }
-
-
     ## K) Keywords
 
     url_lido %>%
@@ -204,30 +174,23 @@ moncoes <- function(
       rvest::html_attr('content') %>%
       paste0(., collapse = ', ')-> keywords
 
-    if(keywords == ""){
-      keywords <- NA
-    } else if(length(keywords) == 0) {
-      keywords <- NA
-    }
-
-    ## L) References
+    if(keywords == ""){keywords <- NA}
+    else if(length(keywords) == 0) {keywords <- NA}
 
     url_lido %>%
-      rvest::html_nodes(xpath = "//div[@id='articleCitations']") %>%
-      rvest::html_nodes("p") %>%
+      rvest::html_nodes("#articleCitations p") %>%
       rvest::html_text() %>%
       paste0("\\t", .,"\\t") %>%
-      toString() -> references
+      toString()  -> references
 
-
-    if(length(references) == 0){references <- NA }
+    if(length(references) == 0){references <- NA}
+    else if(references == "\\t\\t"){references <- NA}
 
     ## M) Url_pdf
 
     url_lido %>%
       rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
       rvest::html_attr('content') -> pdf_url
-
 
     if(full_text) {
 
@@ -250,8 +213,8 @@ moncoes <- function(
         edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
         idioma = language,
         doi = doi,
-        periodico = "Monções: Revista de Relações Internacionais da UFGD",
-        issn = '2316-8323',
+        periodico = "Conjuntura Global",
+        issn = '2317-6563',
         url = x,
         pdf_url = pdf_url,
         texto_completo = content
@@ -272,8 +235,8 @@ moncoes <- function(
         edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
         idioma = language,
         doi = doi,
-        periodico = "Monções: Revista de Relações Internacionais da UFGD",
-        issn = '2316-8323',
+        periodico = "Conjuntura Global",
+        issn = '2317-6563',
         url = x,
         pdf_url = pdf_url
       )
@@ -281,6 +244,5 @@ moncoes <- function(
 
   })
 
-  moncoes
-
+  conjunturaglobal
 }

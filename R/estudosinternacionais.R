@@ -17,7 +17,7 @@ estudosinternacionais <- function(
   assert(
     year = year,
     volume = volume,
-    number - number,
+    number = number,
     silence = silence,
     full_text = full_text
   )
