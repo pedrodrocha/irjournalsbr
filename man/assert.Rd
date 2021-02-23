@@ -2,13 +2,13 @@
 % Please edit documentation in R/assert.R
 \name{assert}
 \alias{assert}
-\title{Title}
+\title{Main assertion function for the package}
 \usage{
-assert()
+assert(year, volume, number, silence, full_text)
 }
 \value{
-
+nothing
 }
 \description{
-Title
+Main assertion function for the package
 }

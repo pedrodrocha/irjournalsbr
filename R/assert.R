@@ -1,6 +1,6 @@
-#' Title
+#' Main assertion function for the package
 #'
-#' @return
+#' @return nothing
 #'
 #'
 #' @examples

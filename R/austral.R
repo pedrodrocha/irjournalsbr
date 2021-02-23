@@ -198,7 +198,7 @@ austral <- function(
 
       ## N) Content
 
-      pdftools::pdf_text(pdf = pdf_url) %>%
+      suppressMessages(pdftools::pdf_text(pdf = pdf_url)) %>%
         readr::read_lines() %>%
         stringr::str_trim() %>%
         stringr::str_c(collapse = ' ') -> content

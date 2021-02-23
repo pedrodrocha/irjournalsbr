@@ -1,4 +1,16 @@
-austral <- function(
+#' Title
+#'
+#' @param year
+#' @param volume
+#' @param number
+#' @param silence
+#' @param full_text
+#'
+#' @return
+#' @export
+#'
+#' @examples
+oikos <- function(
   year, volume, number, silence = TRUE, full_text = FALSE
 ) {
   # PART 0: ASSERTIONS
@@ -10,6 +22,19 @@ austral <- function(
     silence = silence,
     full_text = full_text
   )
+
+  for (i in seq_along(year)) {
+
+    tryCatch(
+      assertthat::assert_that(year[i] > 2005),
+      error = function(e) {
+        stop("There isn't data before 2006", call. = FALSE)
+      }
+    )
+
+  }
+
+
 
   # PART 1: EDITIONS LINKS
 
@@ -135,8 +160,8 @@ austral <- function(
     ## J) Year
 
     url_lido %>%
-      rvest::html_nodes('meta[name="citation_date"]') %>%
-      rvest::html_attr('content') %>%
+      rvest::html_nodes('h2') %>%
+      rvest::html_text() %>%
       stringr::str_extract(.,'[0-9]{4}')-> year
 
 
@@ -163,7 +188,7 @@ austral <- function(
 
       ## N) Content
 
-      pdftools::pdf_text(pdf = pdf_url) %>%
+      suppressMessages(pdftools::pdf_text(pdf = pdf_url)) %>%
         readr::read_lines() %>%
         stringr::str_trim() %>%
         stringr::str_c(collapse = ' ') -> content

@@ -8,12 +8,14 @@
 #'
 #' @return
 #' @export
+#'
 #' @examples
-estudosinternacionais <- function(
+conjunturalaustral <- function(
   year, volume, number, silence = TRUE, full_text = FALSE
-){
+) {
 
-  # PART 0: ASSERTIONS
+  # PART 0A: ASSERTIONS
+
   assert(
     year = year,
     volume = volume,
@@ -22,81 +24,93 @@ estudosinternacionais <- function(
     full_text = full_text
   )
 
+
+  # PART 0B: SOLVING ISSUE NUMBER PROBLEM
+
+  tibble::tibble(number = as.character(number)) %>%
+    dplyr::mutate(number = dplyr::case_when(
+      number %in% c("39","40") ~ "39-40",
+      number %in% c("33","34") ~ "33-34",
+      number %in% c("27","28") ~ "27-28",
+      number %in% c("21","22") ~ "21-22",
+      number %in% c("15","16") ~ "15-16",
+      number %in% c("9","10") ~ "9-10",
+      number %in% c("3","4") ~ "3-4",
+      TRUE ~ number
+    )
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::pull(number) -> number
+
+
+
+
   # PART 1: EDITIONS LINKS
+  url_archive <- "https://seer.ufrgs.br/ConjunturaAustral/issue/archive"
 
-  url_archive <- "http://periodicos.pucminas.br/index.php/estudosinternacionais/issue/archive"
+  url_archive <- xml2::read_html(url_archive)
 
-  url_archive_lido <-  xml2::read_html(url_archive)
-
-
-  url_archive_lido %>%
-    rvest::html_nodes("#pkp_content_main .title") %>%
+  url_archive %>%
+    rvest::html_nodes("h4 a") %>%
     rvest::html_attr("href") -> primary_url
 
-  url_archive_lido %>%
-    rvest::html_nodes('.series') %>%
+
+  url_archive %>%
+    rvest::html_nodes("h4 a") %>%
     rvest::html_text() %>%
-    stringr::str_remove_all("\\n|\\t") -> eds
+    stringr::str_remove(":(.*)") -> eds
 
-
-  tibble::tibble(
-    url = primary_url,
-    editions = eds
-  ) %>%
+  tibble::tibble(url = primary_url,
+                 editions = eds) %>%
     dplyr::mutate(
-      vol = stringr::str_extract(editions, "v. [0-9]") %>%
-        stringr::str_extract(.,"[0-9]") %>%
-        as.numeric(),
-      n = stringr::str_extract(editions, "n. [0-9]") %>%
-        stringr::str_extract(.,"[0-9]") %>%
-        as.numeric(),
-      ano = as.numeric(stringr::str_extract(editions,"[0-9]{4}"))
+      vol = stringr::str_extract(editions, "(v. [0-9]{2})|(v. [0-9]{1})") %>%
+        stringr::str_replace_all(.,'v. ','') %>%
+        as.integer(.),
+      n = stringr::str_extract(editions,'(n. [0-9]{2}-[0-9]{2})|(n. [0-9]{1}-[0-9]{2})|((n. [0-9]{1}-[0-9]{1}))|(n. [0-9]{2})|(n. [0-9]{1})') %>%
+        stringr::str_replace_all(.,'n. ',''),
+      ano = stringr::str_extract(editions,"[0-9]{4}") %>%
+        as.double(.),
+      url = paste0(url, "/showToc")
     ) %>%
     dplyr::filter(ano %in% year &
                     n %in% number &
                     vol %in% volume) %>%
     dplyr::pull(url) -> primary_url
 
-
   # PART II: ARTICLES LINKS
 
-  articles_url <- purrr::map(primary_url, function(x){
-
+  articles_url <- purrr::map(primary_url, function(x) {
 
     url_lido <- xml2::read_html(x)
 
     url_lido %>%
-      rvest::html_nodes(".title a") %>%
-      rvest::html_attr("href") -> links
+      rvest::html_nodes('.tocTitle a') %>%
+      rvest::html_attr('href')  -> links
 
     url_lido %>%
-      rvest::html_nodes(".title a") %>%
-      rvest::html_text() %>%
-      stringr::str_remove_all("\\n|\\t") -> names
+      rvest::html_nodes('.tocTitle a') %>%
+      rvest::html_text()  %>%
+      stringr::str_remove_all("\\n|\\t")-> names
+
 
     tibble::tibble(
       links = links,
       names = names
     ) %>%
       dplyr::filter(
-        names != "Edição Completa",
-        names != "Páginas Iniciais"
+        !stringr::str_detect(names, 'EDIÃ‡ÃƒO COMPLETA')
       ) %>%
       dplyr::pull(links)
 
   }) %>%
     purrr::flatten_chr()
 
-  # PART III: SCRAPPING METADATA
-
-  estudosinternacionais <- purrr::map_dfr(articles_url, function(x) {
-
+  conjunturaaustral <- purrr::map_dfr(articles_url, function(x) {
     if(!isTRUE(silence)) {
       usethis::ui_info(paste0('Currently scrapping: ', x))
     }
 
     url_lido <- xml2::read_html(x)
-
 
     ## A) Filiation
 
@@ -104,56 +118,41 @@ estudosinternacionais <- function(
       rvest::html_nodes('meta[name="citation_author_institution"]') %>%
       rvest::html_attr('content') -> filiation
 
-    if (length(filiation) == 0) {
-      url_lido %>%
-        rvest::html_nodes('.affiliation') %>%
-        rvest::html_text() %>%
-        stringr::str_remove_all("\\n|\\t") -> filiation
-    }
-
-
 
     ## B) Authors
 
     url_lido %>%
       rvest::html_nodes('meta[name="citation_author"]') %>%
-      rvest::html_attr('content') %>%
-      stringr::str_trim() -> authors
+      rvest::html_attr('content') -> authors
+
 
     if(length(filiation) == 0){
       filiation <- NA
     } else if(length(filiation) != length(authors)) {
       filiation <- NA
-
     }
-
 
     ## C) Title
 
     url_lido %>%
-      rvest::html_nodes('meta[name="DC.Title"]') %>%
+      rvest::html_node('meta[name="DC.Title"]') %>%
       rvest::html_attr('content') -> title
-
 
     ## D) Abstract
 
     url_lido %>%
-      rvest::html_node(xpath = "//div[@class='item abstract']") %>%
-      try(rvest::html_node("p")) %>%
+      rvest::html_nodes("#articleAbstract div") %>%
       rvest::html_text() -> abstract
 
     if(length(abstract) == 0){ abstract <- NA }
 
-
     ## E) DOI
-
 
     url_lido %>%
       rvest::html_nodes('meta[name="DC.Identifier.DOI"]') %>%
       rvest::html_attr('content') -> doi
 
     if(length(doi) == 0){ doi <- NA }
-
 
     ## F) Pages
 
@@ -162,16 +161,6 @@ estudosinternacionais <- function(
       rvest::html_attr('content') -> pages
 
     if(length(pages) == 0){ pages <- NA }
-
-
-    ## G) Language
-
-    url_lido %>%
-      rvest::html_nodes('meta[name="DC.Language"]') %>%
-      rvest::html_attr('content') -> language
-
-    if(length(language) == 0){ language <- NA }
-
 
     ## H) Volume
 
@@ -194,34 +183,39 @@ estudosinternacionais <- function(
       rvest::html_attr('content') %>%
       stringr::str_extract('[0-9]{4}')-> year
 
-
     ## K) Keywords
 
     url_lido %>%
-      rvest::html_nodes(".keywords .value") %>%
-      rvest::html_text() %>%
-      stringr::str_remove_all("\\n|\\t") -> keywords
+      rvest::html_nodes('meta[name="DC.Subject"]') %>%
+      rvest::html_attr('content') -> keywords
 
-    if(length(keywords) == 0){keywords <- NA }
+    teste_keywords <- paste0(keywords, collapse = ', ')
+
+    if(teste_keywords == ""){
+      keywords <- NA
+    } else if(length(teste_keywords) == 0) {
+      keywords <- NA
+    } else {
+      url_lido %>%
+        rvest::html_nodes('meta[name="DC.Subject"]') %>%
+        rvest::html_attr('xml:lang') -> keywords_lang
+
+      tibble::tibble(keywords = keywords, lang = keywords_lang) %>%
+        dplyr::filter(lang == language) %>%
+        dplyr::pull(keywords) %>%
+        paste0(., collapse = ', ')-> keywords
+
+    }
 
     ## L) References
 
-    url_lido %>%
-      rvest::html_nodes(".references .value") %>%
-      rvest::html_nodes("div") %>%
-      rvest::html_text() -> references
-
-    if(length(references) == 0){ references <- NA }
-
+    references <- NA
 
     ## M) Url_pdf
 
     url_lido %>%
       rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
       rvest::html_attr('content') -> pdf_url
-
-
-
 
     if(full_text) {
 
@@ -245,12 +239,13 @@ estudosinternacionais <- function(
         edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
         idioma = language,
         doi = doi,
-        periodico = "Estudos Internacionais: Revista de Relções Internacionais da PUC Minas",
-        issn = '2317-773X',
+        periodico = "Conjuntura Austral: Journal of the Global South",
+        issn = '2178-8839',
         url = x,
         pdf_url = pdf_url,
         texto_completo = content
       )
+
 
     } else {
 
@@ -266,17 +261,13 @@ estudosinternacionais <- function(
         edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
         idioma = language,
         doi = doi,
-        periodico = "Estudos Internacionais: Revista de Relações Internacionais da PUC Minas",
-        issn = '2317-773X',
+        periodico = "Conjuntura Austral: Journal of the Global South",
+        issn = '2178-8839',
         url = x,
         pdf_url = pdf_url
       )
-
     }
-
-
-
   })
 
-  estudosinternacionais
+  conjunturaaustral
 }
