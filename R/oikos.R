@@ -18,7 +18,7 @@ oikos <- function(
   assert(
     year = year,
     volume = volume,
-    number - number,
+    number = number,
     silence = silence,
     full_text = full_text
   )
@@ -85,7 +85,7 @@ oikos <- function(
 
   oikos <- purrr::map_dfr(articles_url, function(x) {
     if(!isTRUE(silence)) {
-      usethis::ui_info(paste0('Currently scrapping: ', x))
+      usethis::ui_info(paste0('Currently scraping: ', x))
     }
 
     url_lido <- xml2::read_html(x)
@@ -184,54 +184,26 @@ oikos <- function(
       rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
       rvest::html_attr('content') -> pdf_url
 
-    if(full_text) {
 
-      ## N) Content
-
-      suppressMessages(pdftools::pdf_text(pdf = pdf_url)) %>%
-        readr::read_lines() %>%
-        stringr::str_trim() %>%
-        stringr::str_c(collapse = ' ') -> content
-
-      tibble::tibble(
-        autores = authors,
-        filiacao = filiation,
-        titulo = title,
-        resumo = abstract,
-        palavras_chave = keywords,
-        referencias = references,
-        paginas = pages,
-        ano = year,
-        edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
-        idioma = language,
-        doi = doi,
-        periodico = "Oikos - Revista de Economia Política Internacional",
-        issn = '2238-6912',
-        url = x,
-        pdf_url = pdf_url,
-        texto_completo = content
-      )
-
-    } else {
-
-      tibble::tibble(
-        autores = authors,
-        filiacao = filiation,
-        titulo = title,
-        resumo = abstract,
-        palavras_chave = keywords,
-        referencias = references,
-        paginas = pages,
-        ano = year,
-        edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
-        idioma = language,
-        doi = doi,
-        periodico = "Oikos - Revista de Economia Política Internacional",
-        issn = '2316-8323',
-        url = x,
-        pdf_url = pdf_url
-      )
-    }
+    build_data(
+      authors = authors,
+      filiation = filiation,
+      title = title,
+      abstract = abstract,
+      keywords = keywords,
+      references = references,
+      pages = pages,
+      year = year,
+      volume = volume,
+      number = number,
+      language = language ,
+      doi = doi,
+      x = x,
+      pdf_url = pdf_url,
+      full_text = full_text,
+      journal = "Oikos - Revista de Economia Política Internacional",
+      issn = '2316-8323'
+    )
 
   })
 

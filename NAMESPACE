@@ -2,6 +2,8 @@
 
 export("%>%")
 export(austral)
+export(bjir)
+export(cartainternacional)
 export(conjunturalaustral)
 export(estudosinternacionais)
 export(moncoes)

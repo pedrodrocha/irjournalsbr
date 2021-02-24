@@ -8,8 +8,9 @@
 #'
 #' @return
 #' @export
+#'
 #' @examples
-estudosinternacionais <- function(
+bjir <- function(
   year, volume, number, silence = TRUE, full_text = FALSE
 ){
 
@@ -24,39 +25,54 @@ estudosinternacionais <- function(
 
   # PART 1: EDITIONS LINKS
 
-  url_archive <- "http://periodicos.pucminas.br/index.php/estudosinternacionais/issue/archive"
+  url_archive1 <- "http://www2.marilia.unesp.br/revistas/index.php/bjir/issue/archive"
+  url_archive2 <- "https://revistas.marilia.unesp.br/index.php/bjir/issue/archive/2"
 
-  url_archive_lido <-  xml2::read_html(url_archive)
+
+  xml2::read_html(url_archive1) %>%
+    rvest::html_nodes(".obj_issue_summary .title") %>%
+    rvest::html_attr("href")  -> primary_url1
+
+  xml2::read_html(url_archive2) %>%
+    rvest::html_nodes(".obj_issue_summary .title") %>%
+    rvest::html_attr("href")  -> primary_url2
+
+  primary_url <- c(primary_url1,primary_url2)
 
 
-  url_archive_lido %>%
-    rvest::html_nodes("#pkp_content_main .title") %>%
-    rvest::html_attr("href") -> primary_url
-
-  url_archive_lido %>%
-    rvest::html_nodes('.series') %>%
+  xml2::read_html(url_archive1) %>%
+    rvest::html_nodes(".obj_issue_summary .title") %>%
     rvest::html_text() %>%
-    stringr::str_remove_all("\\n|\\t") -> eds
+    stringr::str_remove_all("\\n|\\t") -> eds1
 
+  xml2::read_html(url_archive2) %>%
+    rvest::html_nodes(".obj_issue_summary .title") %>%
+    rvest::html_text() %>%
+    stringr::str_remove_all("\\n|\\t") -> eds2
 
-  tibble::tibble(
-    url = primary_url,
-    editions = eds
-  ) %>%
+  eds <- c(eds1,eds2)
+
+  tibble::tibble(url = primary_url,
+                 editions = eds) %>%
     dplyr::mutate(
-      vol = stringr::str_extract(editions, "v. [0-9]") %>%
-        stringr::str_extract(.,"[0-9]") %>%
-        as.numeric(),
-      n = stringr::str_extract(editions, "n. [0-9]") %>%
-        stringr::str_extract(.,"[0-9]") %>%
-        as.numeric(),
-      ano = as.numeric(stringr::str_extract(editions,"[0-9]{4}"))
-    ) %>%
+
+      editions = ifelse(
+        editions == "Hegemonia, disputas hegemônicas e interregno hegemônico. A resistência da ordem americana e os desafios para os seus potenciais rivais",
+        "v. 7 n. 3 (2018)", editions
+      ),
+      vol = stringr::str_extract(editions, "(v. [0-9]{2})|(v. [0-9]{1})") %>%
+        stringr::str_replace_all(.,'v. ','') %>%
+        as.integer(.),
+      n = stringr::str_extract(editions,'(n. [0-9]{2})|(n. [0-9]{1})') %>%
+        stringr::str_replace_all(.,'n. ','') %>%
+        as.integer(.),
+      ano = stringr::str_extract(editions,"[0-9]{4}") %>%
+        as.double(.)
+    )  %>%
     dplyr::filter(ano %in% year &
                     n %in% number &
                     vol %in% volume) %>%
     dplyr::pull(url) -> primary_url
-
 
   # PART II: ARTICLES LINKS
 
@@ -79,39 +95,27 @@ estudosinternacionais <- function(
       names = names
     ) %>%
       dplyr::filter(
-        names != "Edição Completa",
-        names != "Páginas Iniciais"
+        names != "Colaboradores",
+        names != "Edição completa",
+        !stringr::str_detect(names,'Pareceristas do')
       ) %>%
       dplyr::pull(links)
 
   }) %>%
     purrr::flatten_chr()
 
-  # PART III: SCRAPPING METADATA
-
-  estudosinternacionais <- purrr::map_dfr(articles_url, function(x) {
-
+  bjir <- purrr::map_dfr(articles_url, function(x) {
     if(!isTRUE(silence)) {
       usethis::ui_info(paste0('Currently scraping: ', x))
     }
 
     url_lido <- xml2::read_html(x)
 
-
     ## A) Filiation
 
     url_lido %>%
       rvest::html_nodes('meta[name="citation_author_institution"]') %>%
       rvest::html_attr('content') -> filiation
-
-    if (length(filiation) == 0) {
-      url_lido %>%
-        rvest::html_nodes('.affiliation') %>%
-        rvest::html_text() %>%
-        stringr::str_remove_all("\\n|\\t") -> filiation
-    }
-
-
 
     ## B) Authors
 
@@ -124,36 +128,31 @@ estudosinternacionais <- function(
       filiation <- NA
     } else if(length(filiation) != length(authors)) {
       filiation <- NA
-
     }
-
 
     ## C) Title
 
     url_lido %>%
-      rvest::html_nodes('meta[name="DC.Title"]') %>%
-      rvest::html_attr('content') -> title
-
+      rvest::html_node('meta[name="DC.Title"]') %>%
+      rvest::html_attr('content') %>%
+      stringr::str_remove("(/(.*))") %>%
+      stringr::str_trim() -> title
 
     ## D) Abstract
 
     url_lido %>%
-      rvest::html_node(xpath = "//div[@class='item abstract']") %>%
-      try(rvest::html_node("p")) %>%
+      rvest::html_nodes(".label+ p") %>%
       rvest::html_text() -> abstract
 
     if(length(abstract) == 0){ abstract <- NA }
 
-
     ## E) DOI
-
 
     url_lido %>%
       rvest::html_nodes('meta[name="DC.Identifier.DOI"]') %>%
       rvest::html_attr('content') -> doi
 
     if(length(doi) == 0){ doi <- NA }
-
 
     ## F) Pages
 
@@ -163,7 +162,6 @@ estudosinternacionais <- function(
 
     if(length(pages) == 0){ pages <- NA }
 
-
     ## G) Language
 
     url_lido %>%
@@ -171,7 +169,6 @@ estudosinternacionais <- function(
       rvest::html_attr('content') -> language
 
     if(length(language) == 0){ language <- NA }
-
 
     ## H) Volume
 
@@ -194,31 +191,32 @@ estudosinternacionais <- function(
       rvest::html_attr('content') %>%
       stringr::str_extract('[0-9]{4}')-> year
 
-
     ## K) Keywords
 
     url_lido %>%
-      rvest::html_nodes(".keywords .value") %>%
-      rvest::html_text() %>%
-      stringr::str_remove_all("\\n|\\t") -> keywords
+      rvest::html_nodes('meta[name="DC.Subject"]') %>%
+      rvest::html_attr('content') %>%
+      paste0(., collapse = ', ')-> keywords
 
-    if(length(keywords) == 0){keywords <- NA }
-
-    ## L) References
+    if(keywords == ""){
+      keywords <- NA
+    } else if(length(keywords) == 0) {
+      keywords <- NA
+    }
 
     url_lido %>%
       rvest::html_nodes(".references .value") %>%
-      rvest::html_nodes("div") %>%
-      rvest::html_text() -> references
+      rvest::html_text() %>%
+      stringr::str_remove_all("\\n|\\t") -> references
 
-    if(length(references) == 0){ references <- NA }
-
+    if(length(references) == 0){references <- NA }
 
     ## M) Url_pdf
 
     url_lido %>%
       rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
       rvest::html_attr('content') -> pdf_url
+
 
 
     build_data(
@@ -237,11 +235,12 @@ estudosinternacionais <- function(
       x = x,
       pdf_url = pdf_url,
       full_text = full_text,
-      journal = "Estudos Internacionais: Revista de Relações Internacionais da PUC Minas",
-      issn = '2317-773X'
+      journal = "Brazilian Journal of International Relations",
+      issn = '2237-7743'
     )
 
   })
 
-  estudosinternacionais
+  bjir
+
 }

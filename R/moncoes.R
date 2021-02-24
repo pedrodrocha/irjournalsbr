@@ -91,7 +91,7 @@ moncoes <- function(
       names = names
     ) %>%
       dplyr::filter(
-        !stringr::str_detect(names, 'edição completa')
+        !stringr::str_detect(names, '(edição completa)|(Edição Completa)')
       ) %>%
       dplyr::pull(links)
 
@@ -102,7 +102,7 @@ moncoes <- function(
 
   moncoes <- purrr::map_dfr(articles_url, function(x) {
     if(!isTRUE(silence)) {
-      usethis::ui_info(paste0('Currently scrapping: ', x))
+      usethis::ui_info(paste0('Currently scraping: ', x))
     }
 
 
@@ -222,6 +222,7 @@ moncoes <- function(
 
     if(length(references) == 0){references <- NA }
 
+
     ## M) Url_pdf
 
     url_lido %>%
@@ -229,58 +230,32 @@ moncoes <- function(
       rvest::html_attr('content') -> pdf_url
 
 
-    if(full_text) {
-
-      ## N) Content
-
-      suppressMessages(pdftools::pdf_text(pdf = pdf_url)) %>%
-        readr::read_lines() %>%
-        stringr::str_trim() %>%
-        stringr::str_c(collapse = ' ') -> content
-
-      tibble::tibble(
-        autores = authors,
-        filiacao = filiation,
-        titulo = title,
-        resumo = abstract,
-        palavras_chave = keywords,
-        referencias = references,
-        paginas = pages,
-        ano = year,
-        edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
-        idioma = language,
-        doi = doi,
-        periodico = "Monções: Revista de Relações Internacionais da UFGD",
-        issn = '2316-8323',
-        url = x,
-        pdf_url = pdf_url,
-        texto_completo = content
-      )
-
-
-    } else {
-
-      tibble::tibble(
-        autores = authors,
-        filiacao = filiation,
-        titulo = title,
-        resumo = abstract,
-        palavras_chave = keywords,
-        referencias = references,
-        paginas = pages,
-        ano = year,
-        edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
-        idioma = language,
-        doi = doi,
-        periodico = "Monções: Revista de Relações Internacionais da UFGD",
-        issn = '2316-8323',
-        url = x,
-        pdf_url = pdf_url
-      )
-    }
+  build_data(
+    authors = authors,
+    filiation = filiation,
+    title = title,
+    abstract = abstract,
+    keywords = keywords,
+    references = references,
+    pages = pages,
+    year = year,
+    volume = volume,
+    number = number,
+    language = language ,
+    doi = doi,
+    x = x,
+    pdf_url = pdf_url,
+    full_text = full_text,
+    journal = "Monções: Revista de Relações Internacionais da UFGD",
+    issn = '2316-8323'
+  )
 
   })
 
-  moncoes
+  moncoes %>%
+    dplyr::na_if('\\t\\t') %>%
+    dplyr::na_if('\\t.\\t')
 
 }
+
+
