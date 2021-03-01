@@ -91,7 +91,7 @@ moncoes <- function(
       names = names
     ) %>%
       dplyr::filter(
-        !stringr::str_detect(names, '(edição completa)|(Edição Completa)')
+        !stringr::str_detect(names, '(ediÃ§Ã£o completa)|(EdiÃ§Ã£o Completa)')
       ) %>%
       dplyr::pull(links)
 
@@ -246,7 +246,7 @@ moncoes <- function(
     x = x,
     pdf_url = pdf_url,
     full_text = full_text,
-    journal = "Monções: Revista de Relações Internacionais da UFGD",
+    journal = "MonÃ§Ãµes: Revista de RelaÃ§Ãµes Internacionais da UFGD",
     issn = '2316-8323'
   )
 

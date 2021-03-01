@@ -98,7 +98,7 @@ conjunturalaustral <- function(
       names = names
     ) %>%
       dplyr::filter(
-        !stringr::str_detect(names, 'EDIÇÃO COMPLETA')
+        !stringr::str_detect(names, 'EDIÃ‡ÃƒO COMPLETA')
       ) %>%
       dplyr::pull(links)
 

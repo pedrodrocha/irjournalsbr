@@ -86,7 +86,7 @@ cartainternacional <- function(
       names = names
     ) %>%
       dplyr::filter(
-        names != "Edição Completa",
+        names != "EdiÃ§Ã£o Completa",
         !stringr::str_detect(names, "(v. [0-9]{2})|(v. [0-9]{1})")
       ) %>%
       dplyr::pull(links)

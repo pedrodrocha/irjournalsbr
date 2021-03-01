@@ -17,5 +17,6 @@ Imports:
     magrittr,
     usethis,
     pdftools,
-    assertthat
+    assertthat,
+    glue
 RoxygenNote: 7.1.1

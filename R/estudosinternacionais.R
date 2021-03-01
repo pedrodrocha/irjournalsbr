@@ -79,8 +79,8 @@ estudosinternacionais <- function(
       names = names
     ) %>%
       dplyr::filter(
-        names != "Edição Completa",
-        names != "Páginas Iniciais"
+        names != "EdiÃ§Ã£o Completa",
+        names != "PÃ¡ginas Iniciais"
       ) %>%
       dplyr::pull(links)
 
@@ -237,7 +237,7 @@ estudosinternacionais <- function(
       x = x,
       pdf_url = pdf_url,
       full_text = full_text,
-      journal = "Estudos Internacionais: Revista de Relações Internacionais da PUC Minas",
+      journal = "Estudos Internacionais: Revista de RelaÃ§Ãµes Internacionais da PUC Minas",
       issn = '2317-773X'
     )
 
