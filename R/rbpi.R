@@ -10,10 +10,9 @@
 #' @export
 #'
 #' @examples
-contextointernacional <- function(
+rbpi <- function(
   year, volume, number, silence = TRUE, full_text = FALSE
 ){
-
   # PART 0: ASSERTIONS
   assert(
     year = year,
@@ -24,8 +23,7 @@ contextointernacional <- function(
   )
 
   # PART 1: EDITIONS LINKS
-
-  url_archive <- "https://www.scielo.br/scielo.php?script=sci_issues&pid=0102-8529&lng=en&nrm=iso"
+  url_archive <- "https://www.scielo.br/scielo.php?script=sci_issues&pid=0034-7329&lng=en&nrm=iso"
 
   xml2::read_html(url_archive) %>%
     rvest::html_nodes("b a") %>%
@@ -42,18 +40,18 @@ contextointernacional <- function(
                         values_to = "numero",
                         values_drop_na = TRUE) %>%
     dplyr::select(-X) %>%
-    dplyr::filter(numero %in% c("1","2","3")) %>%
     dplyr::rename(ano = "X1",
                   vol = "X2") %>%
     dplyr::mutate(ano = as.numeric(ano),
                   vol = as.numeric(vol),
                   numero = as.numeric(dplyr::if_else(numero == "special issue","3", numero))) %>%
+    dplyr::filter(numero %in% c("1","2","3")) %>%
+
     dplyr::mutate(url = primary_url) %>%
     dplyr::filter(ano %in% year &
                     numero %in% number &
                     vol %in% volume) %>%
-    dplyr::select(url) %>%
-    purrr::flatten_chr() -> primary_url
+    dplyr::pull(url)  -> primary_url
 
   # PART II: ARTICLES LINKS
 
@@ -72,7 +70,7 @@ contextointernacional <- function(
 
   # PART III: SCRAPPING METADATA
 
-  contextointernacional <- purrr::map_dfr(articles_url, function(x) {
+  rbpi <- purrr::map_dfr(articles_url, function(x) {
     if(!isTRUE(silence)) {
       usethis::ui_info(paste0('Currently scraping: ', x))
     }
@@ -89,19 +87,9 @@ contextointernacional <- function(
       purrr::flatten_chr() %>%
       xml2::read_xml() -> xml
 
+    if(suppressWarnings(stringr::str_detect(xml[1], "Error"))){
+      usethis::ui_warn(paste0('O xml do artigo ', x, " está quebrado"))
 
-
-    #Qual o idioma?
-    language <- stringr::str_sub(x, start= -2,end= -1)
-
-
-    xml %>%
-      # Pegar sempre só o primeiro, porque vai estar no idioma em que o artigo foi
-      # escrito
-      xml2::xml_find_first(., ".//article-title") %>%
-      xml2::xml_text() -> article_title
-
-    if(article_title == "Erratum"){
       build_data(
         authors = "NA",
         filiation = "NA",
@@ -118,8 +106,44 @@ contextointernacional <- function(
         x = x,
         pdf_url = "NA",
         full_text = "NA",
-        journal = "Contexto Internacional",
-        issn = "1982-0240"
+        journal ="Revista Brasileira de Política Internacional",
+        issn = "0034-7329"
+      )
+
+    }
+
+
+
+
+    #Qual o idioma?
+    language <- stringr::str_sub(x, start= -2,end= -1)
+
+
+    xml %>%
+      # Pegar sempre sÃ³ o primeiro, porque vai estar no idioma em que o artigo foi
+      # escrito
+      xml2::xml_find_first(., ".//article-title") %>%
+      xml2::xml_text() -> article_title
+
+    if(article_title == "Erratum" | article_title == "Manual das organizações internacionais"){
+      build_data(
+        authors = "NA",
+        filiation = "NA",
+        title = article_title,
+        abstract = "NA",
+        keywords = "NA",
+        references = "NA",
+        pages = "NA",
+        year = "NA",
+        volume = "NA",
+        number = "NA",
+        language = "NA" ,
+        doi = "NA",
+        x = x,
+        pdf_url = "NA",
+        full_text = "NA",
+        journal ="Revista Brasileira de Política Internacional",
+        issn = "0034-7329"
       )
 
 
@@ -177,7 +201,7 @@ contextointernacional <- function(
 
       ## D) Abstract
       xml %>%
-        # Pegar sempre só o primeiro, porque vai estar no idioma em que o artigo foi
+        # Pegar sempre sÃ³ o primeiro, porque vai estar no idioma em que o artigo foi
         # escrito
         xml2::xml_find_first(., ".//abstract") %>%
         xml2::xml_text() -> abstract
@@ -242,7 +266,7 @@ contextointernacional <- function(
         keyword_bruto[xml2::xml_attr(keyword_bruto, "lng")== language] %>%
           xml2::xml_text()-> keywords
         keywords %>%
-            toString() -> keywords
+          toString() -> keywords
       }
 
       ## L) References
@@ -293,8 +317,8 @@ contextointernacional <- function(
         x = x,
         pdf_url = pdf_url,
         full_text = full_text,
-        journal = "Contexto Internacional",
-        issn = "1982-0240"
+        journal ="Revista Brasileira de Política Internacional",
+        issn = "0034-7329"
       )
 
 
@@ -302,5 +326,6 @@ contextointernacional <- function(
     }
 
   })
-  contextointernacional
+  rbpi
+
 }
