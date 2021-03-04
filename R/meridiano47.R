@@ -259,7 +259,6 @@ meridiano47 <- function(
     )
 
 
-
   })
 
   meridiano47
