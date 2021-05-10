@@ -29,28 +29,27 @@ estudosinternacionais <- function(
   url_archive_lido <-  xml2::read_html(url_archive)
 
 
-  url_archive_lido %>%
-    rvest::html_nodes("#pkp_content_main .title") %>%
-    rvest::html_attr("href") -> primary_url
-
-  url_archive_lido %>%
+  xml2::read_html(url_archive) %>%
     rvest::html_nodes('.series') %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\\n|\\t") -> eds
 
+  xml2::read_html(url_archive) %>%
+    rvest::html_nodes('#pkp_content_main .title') %>%
+    rvest::html_attr('href') -> primary_url
 
-  tibble::tibble(
-    url = primary_url,
-    editions = eds
-  ) %>%
+
+
+  tibble::tibble(url = primary_url,
+                 editions = eds) %>%
     dplyr::mutate(
-      vol = stringr::str_extract(editions, "v. [0-9]") %>%
-        stringr::str_extract(.,"[0-9]") %>%
-        as.numeric(),
-      n = stringr::str_extract(editions, "n. [0-9]") %>%
-        stringr::str_extract(.,"[0-9]") %>%
-        as.numeric(),
-      ano = as.numeric(stringr::str_extract(editions,"[0-9]{4}"))
+      vol = stringr::str_extract(editions, "(v. [0-9]{2})|(v. [0-9]{1})") %>%
+        stringr::str_replace_all(.,'v. ','') %>%
+        as.integer(.),
+      n = stringr::str_extract(editions,'n. [0-9]{1}') %>%
+        stringr::str_replace_all(.,'n. ','') %>%
+        as.integer(.),
+      ano = stringr::str_extract(editions,"[0-9]{4}") %>%  as.integer(.)
     ) %>%
     dplyr::filter(ano %in% year &
                     n %in% number &
@@ -243,5 +242,15 @@ estudosinternacionais <- function(
 
   })
 
-  estudosinternacionais
+  estudosinternacionais  %>%
+    dplyr::group_by(TI) %>%
+    dplyr::mutate(
+      AU = toString(AU),
+      OG = toString(OG)
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      AB = stringr::str_squish(AB)
+    )
 }

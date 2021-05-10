@@ -52,43 +52,43 @@ build_data <- function(
       stringr::str_c(collapse = ' ') -> content
 
     tibble::tibble(
-      autores = authors,
-      filiacao = filiation,
-      titulo = title,
-      resumo = abstract,
-      palavras_chave = keywords,
-      referencias = references,
-      paginas = pages,
-      ano = year,
-      edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
-      idioma = language,
-      doi = doi,
-      periodico = journal,
-      issn = issn,
-      url = x,
-      pdf_url = pdf_url,
-      texto_completo = content
+      AU = authors,
+      OG = filiation,
+      TI = title,
+      AB = abstract,
+      DE = keywords,
+      CR = references,
+      BP_EP = pages,
+      PY = year,
+      IS = paste0('v. ',volume,' n. ', number, ' (',year,')'),
+      LA = language,
+      DI = doi,
+      SO = journal,
+      SN = issn,
+      URL = x,
+      PDFURL = pdf_url,
+      FULLTEXT = content
     )
 
 
   } else {
 
     tibble::tibble(
-      autores = authors,
-      filiacao = filiation,
-      titulo = title,
-      resumo = abstract,
-      palavras_chave = keywords,
-      referencias = references,
-      paginas = pages,
-      ano = year,
-      edicao = paste0('v. ',volume,' n. ', number, ' (',year,')'),
-      idioma = language,
-      doi = doi,
-      periodico = journal,
-      issn = issn,
-      url = x,
-      pdf_url = pdf_url
+      AU = authors,
+      OG = filiation,
+      TI = title,
+      AB = abstract,
+      DE = keywords,
+      CR = references,
+      BP_EP = pages,
+      PY = year,
+      IS = paste0('v. ',volume,' n. ', number, ' (',year,')'),
+      LA = language,
+      DI = doi,
+      SO = journal,
+      SN = issn,
+      URL = x,
+      PDFURL = pdf_url,
     )
   }
 
