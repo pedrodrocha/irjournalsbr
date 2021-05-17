@@ -122,7 +122,7 @@ austral <- function(
     ## D) Abstract
 
     url_lido %>%
-      rvest::html_node('meta[name="DC.Description"]') %>%
+      rvest::html_nodes('meta[name="DC.Description"][xml\\:lang="en"]') %>%
       rvest::html_attr('content') -> abstract
 
 
@@ -146,11 +146,7 @@ austral <- function(
 
     ## G) Language
 
-    url_lido %>%
-      rvest::html_nodes('meta[name="DC.Language"]') %>%
-      rvest::html_attr('content') -> language
-
-    if(length(language) == 0){ language <- NA }
+    language <- "en"
 
     ## H) Volume
 
@@ -175,9 +171,9 @@ austral <- function(
     ## K) Keywords
 
     url_lido %>%
-      rvest::html_nodes('meta[name="DC.Subject"]') %>%
+      rvest::html_nodes('meta[name="DC.Subject"][xml\\:lang="en"]') %>%
       rvest::html_attr('content') %>%
-      paste0(., collapse = ', ')-> keywords
+      paste0(., collapse = ', ') -> keywords
 
     if(keywords == ""){keywords <- NA}
 
@@ -217,5 +213,16 @@ austral <- function(
 
   })
 
-  austral
+  austral %>%
+  dplyr::group_by(TI) %>%
+    dplyr::mutate(
+      AU = toString(AU),
+      OG = toString(OG),
+      TI = stringr::str_to_title(TI)
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      AB = stringr::str_squish(AB)
+    )
 }
