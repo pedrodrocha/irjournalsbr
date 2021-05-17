@@ -283,6 +283,16 @@ conjunturainternacional <- function(
 
   })
 
-  conjunturainternacional
+  conjunturainternacional %>%
+    dplyr::group_by(TI) %>%
+    dplyr::mutate(
+      AU = toString(AU),
+      OG = toString(OG)
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      AB = stringr::str_squish(AB)
+    )
 
 }
