@@ -162,6 +162,14 @@ conjunturalaustral <- function(
 
     if(length(pages) == 0){ pages <- NA }
 
+    ## G) Language
+
+    url_lido %>%
+      rvest::html_nodes('meta[name="DC.Language"]') %>%
+      rvest::html_attr('content') -> language
+
+    if(length(language) == 0){ language <- NA }
+
     ## H) Volume
 
     url_lido %>%
@@ -239,5 +247,16 @@ conjunturalaustral <- function(
 
   })
 
-  conjunturaaustral
+  conjunturaaustral %>%
+    dplyr::group_by(TI) %>%
+    dplyr::mutate(
+      AU = toString(AU),
+      OG = toString(OG)
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      AB = stringr::str_squish(AB)
+    )
+
 }

@@ -254,7 +254,17 @@ moncoes <- function(
 
   moncoes %>%
     dplyr::na_if('\\t\\t') %>%
-    dplyr::na_if('\\t.\\t')
+    dplyr::na_if('\\t.\\t') %>%
+    dplyr::group_by(TI) %>%
+    dplyr::mutate(
+      AU = toString(AU),
+      OG = toString(OG)
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      AB = stringr::str_squish(AB)
+    )
 
 }
 
