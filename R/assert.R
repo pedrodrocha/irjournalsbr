@@ -19,12 +19,12 @@ assert <- function(year,volume,number,silence,full_text) {
     }
   )
 
-  tryCatch(
-    assertthat::assert_that(is.numeric(number)),
-    error = function(e) {
-      stop("'number' must be numeric", call. = FALSE)
-    }
-  )
+  # tryCatch(
+  #   assertthat::assert_that(is.numeric(number)),
+  #   error = function(e) {
+  #     stop("'number' must be numeric", call. = FALSE)
+  #   }
+  # ) Deu erro aqui na hora de coletar de forma automatizada por causa do "-" nas edicoes duplas de periodicos como Conjuntura Austral
 
   tryCatch(
     assertthat::assert_that(is.logical(silence)),
