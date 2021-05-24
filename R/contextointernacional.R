@@ -25,35 +25,45 @@ contextointernacional <- function(
 
   # PART 1: EDITIONS LINKS
 
-  url_archive <- "https://www.scielo.br/scielo.php?script=sci_issues&pid=0102-8529&lng=en&nrm=iso"
+  url_archive <- "http://www.scielo.br/j/cint/grid"
 
   xml2::read_html(url_archive) %>%
-    rvest::html_nodes("b a") %>%
-    rvest::html_attr("href")  -> primary_url
+    rvest::html_nodes(".btn") %>%
+    rvest::html_attr("href") %>%
+    paste0("http://www.scielo.br",.) %>%
+    Filter(x = ., f = function(x) { stringr::str_detect(x, "v[0-9]{2}n") & !stringr::str_detect(x, "goto=previous")})  -> primary_url
 
   xml2::read_html(url_archive) %>%
-    rvest::html_nodes("table") %>%
-    rvest::html_table(fill = TRUE) %>%
-    .[[5]] %>%
-    dplyr::select(1:5) %>%
-    dplyr::slice(-1) %>%
-    tidyr::pivot_longer(cols = 3:5,
-                        names_to = "X",
-                        values_to = "numero",
-                        values_drop_na = TRUE) %>%
-    dplyr::select(-X) %>%
-    dplyr::filter(numero %in% c("1","2","3")) %>%
-    dplyr::rename(ano = "X1",
-                  vol = "X2") %>%
-    dplyr::mutate(ano = as.numeric(ano),
-                  vol = as.numeric(vol),
-                  numero = as.numeric(dplyr::if_else(numero == "special issue","3", numero))) %>%
-    dplyr::mutate(url = primary_url) %>%
-    dplyr::filter(ano %in% year &
-                    numero %in% number &
-                    vol %in% volume) %>%
-    dplyr::select(url) %>%
-    purrr::flatten_chr() -> primary_url
+    rvest::html_nodes("tbody td:nth-child(1)") %>%
+    rvest::html_text() -> anos
+
+  xml2::read_html(url_archive) %>%
+    rvest::html_nodes("tbody th") %>%
+    rvest::html_text() %>%
+    stringr::str_squish() -> volumes
+
+
+  xml2::read_html(url_archive) %>%
+    rvest::html_nodes("tbody .left") %>%
+    rvest::html_text() %>%
+    stringr::str_squish() %>%
+    stringr::str_replace_all(.," ", ",") -> numeros
+
+
+  tibble::tibble(
+    ano  = anos,
+    vol = volumes,
+    numero = numeros
+  )  %>%
+    tidyr::separate_rows(numero, sep = ",") -> ano_vol_year
+
+  tibble::tibble(
+    url = primary_url
+  ) %>%
+    dplyr::distinct() %>%
+    dplyr::bind_cols(ano_vol_year) %>%
+    dplyr::filter(ano %in% year & numero %in% number & vol %in% volume) %>%
+    dplyr::pull(url) -> primary_url
 
   # PART II: ARTICLES LINKS
 
@@ -61,14 +71,15 @@ contextointernacional <- function(
     url_lido <- xml2::read_html(x)
 
     url_lido %>%
-      rvest::html_nodes(".content div a") %>%
+      rvest::html_nodes(".links a") %>%
       rvest::html_attr("href") %>%
-      tibble::as_tibble() %>%
-      dplyr::filter(!stringr::str_detect(value,"(.pdf)|(abstract)|(javascript)")) %>%
-      dplyr::pull(value)
+      Filter(x = .,f = function(x) { !stringr::str_detect(x,'abstract') & !stringr::str_detect(x,'pdf')})  %>%
+      paste0("http://www.scielo.br",.)
 
   }) %>%
     purrr::flatten_chr()
+
+
 
   # PART III: SCRAPPING METADATA
 
@@ -81,12 +92,8 @@ contextointernacional <- function(
 
 
     url_lido %>%
-      rvest::html_nodes(xpath = "//div[@class='box']") %>%
-      rvest::html_nodes("a") %>%
-      rvest::html_attr("href") %>%
-      tibble::tibble() %>%
-      dplyr::filter(stringr::str_detect(.,"XML")) %>%
-      purrr::flatten_chr() %>%
+      rvest::html_nodes('meta[name="citation_xml_url"]') %>%
+      rvest::html_attr('content') %>%
       xml2::read_xml() -> xml
 
 
@@ -127,7 +134,7 @@ contextointernacional <- function(
 
       ## A) Filiation
       xml %>%
-        xml2::xml_find_all(., ".//aff//institution") %>%
+        xml2::xml_find_all(., "//institution[@content-type='orgname']") %>%
         xml2::xml_text() %>%
         stringr::str_remove(.,",") %>%
         stringr::str_trim() -> filiation
@@ -155,22 +162,10 @@ contextointernacional <- function(
       ## C) Title
 
       xml %>%
-        xml2::xml_find_all(.,'.//article-meta//article-title') %>%
-        xml2::xml_text() -> title_texto
-
-      xml %>%
-        xml2::xml_find_all(.,'.//article-meta//article-title') %>%
-        xml2::xml_attr('lang') -> title_lang
-
-
-      if(length(title_texto) == 0){
-        title <- "NA"
-      } else{
-
-        tibble::tibble(texto = title_texto, lingua = title_lang) %>%
-          dplyr::filter(lingua == language) %>%
-          dplyr::pull(texto) -> title
-      }
+        # Pegar sempre só o primeiro, porque vai estar no idioma em que o artigo foi
+        # escrito
+        xml2::xml_find_first(., ".//article-title") %>%
+        xml2::xml_text() -> title
 
       if (length(title) == 0) { title <- "NA"}
       else if(title == "") {title <- "NA"}
@@ -221,7 +216,7 @@ contextointernacional <- function(
 
       ## I) Number
       xml %>%
-        xml2::xml_find_first(., ".//numero") %>%
+        xml2::xml_find_first(., ".//issue") %>%
         xml2::xml_text() -> number
 
       ## J) Year
@@ -232,18 +227,14 @@ contextointernacional <- function(
 
       ## K) Keywords
       xml %>%
-        xml2::xml_find_all(., ".//kwd-group") %>%
-        xml2::xml_find_all(.,".//kwd") -> keyword_bruto
+        xml2::xml_find_all("//kwd-group[@xml:lang = 'en']") %>%
+        xml2::xml_find_all(.,".//kwd")  %>%
+        xml2::xml_text() %>%
+        stringr::str_c(.,collapse = '; ')-> keywords
 
-      if (length(keyword_bruto) == 0){
-        keywords <- "NA"
-      } else {
 
-        keyword_bruto[xml2::xml_attr(keyword_bruto, "lng")== language] %>%
-          xml2::xml_text()-> keywords
-        keywords %>%
-            toString() -> keywords
-      }
+
+      if (length(keywords) == 0){ keywords <- "NA" }
 
       ## L) References
       xml %>%
@@ -254,28 +245,14 @@ contextointernacional <- function(
         references <- "NA"
       } else {
 
-        references <- vector(mode = "character", length = length(references_bruto))
-
-        for (i in seq_along(references_bruto)){
-
-          references[i] <- glue::glue("//t{references_bruto[i]}//t")
-        }
-
-        references %>%
-          toString() -> references
+        references <- stringr::str_c(references_bruto, collapse =  '//t ') %>% stringr::str_squish()
       }
 
 
       ## M) Url_pdf
       url_lido %>%
-        rvest::html_nodes(xpath = "//div[@class='box']") %>%
-        rvest::html_nodes("a") %>%
-        rvest::html_attr("href") %>%
-        tibble::tibble() %>%
-        dplyr::filter(stringr::str_detect(.,"pdf")) %>%
-        purrr::flatten_chr() %>%
-        stringr::str_c('https://www.scielo.br',.) -> pdf_url
-
+        rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
+        rvest::html_attr('content') -> pdf_url
 
       build_data(
         authors = authors,
