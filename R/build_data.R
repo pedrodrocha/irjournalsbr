@@ -42,7 +42,7 @@ build_data <- function(
   issn
 ) {
 
-  if(full_text) {
+  if(isTRUE(full_text)) {
 
     ## N) Content
 

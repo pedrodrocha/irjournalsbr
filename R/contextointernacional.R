@@ -102,11 +102,10 @@ contextointernacional <- function(
     language <- stringr::str_sub(x, start= -2,end= -1)
 
 
-    xml %>%
-      # Pegar sempre só o primeiro, porque vai estar no idioma em que o artigo foi
-      # escrito
-      xml2::xml_find_first(., ".//article-title") %>%
-      xml2::xml_text() -> article_title
+    url_lido %>%
+      rvest::html_node('h1.article-title') %>%
+      rvest::html_text() %>%
+      stringr::str_squish() -> article_title
 
     if(article_title == "Erratum"){
       build_data(
@@ -279,5 +278,18 @@ contextointernacional <- function(
     }
 
   })
-  contextointernacional
+  contextointernacional %>%
+    dplyr::group_by(TI) %>%
+    dplyr::mutate(
+      AU = toString(AU),
+      OG = toString(OG)
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      AB = stringr::str_squish(AB),
+      DE = dplyr::na_if(DE, "")
+    ) %>%
+  dplyr::mutate(dplyr::across(where(is.character), ~dplyr::na_if(.,"NA")))
+
 }

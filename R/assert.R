@@ -4,7 +4,7 @@
 #'
 #'
 #' @examples
-assert <- function(year,volume,number,silence,full_text) {
+assert <- function(year,volume,number,silence, full_text) {
   tryCatch(
     assertthat::assert_that(is.numeric(year)),
     error = function(e) {
@@ -33,10 +33,10 @@ assert <- function(year,volume,number,silence,full_text) {
     }
   )
 
-  tryCatch(
-    assertthat::assert_that(is.logical(full_text)),
-    error = function(e) {
-      stop("'full_text' must be logical", call. = FALSE)
-    }
-  )
+  # tryCatch(
+  #   assertthat::assert_that(is.logical(full_text)),
+  #   error = function(e) {
+  #     stop("'full_text' must be logical", call. = FALSE)
+  #   }
+  # )
 }
