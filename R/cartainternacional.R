@@ -171,7 +171,7 @@ cartainternacional <- function(
      rvest::html_nodes('meta[name="DC.Identifier.DOI"]') %>%
      rvest::html_attr('content') -> doi
 
-   if(length(doi) == 0){ doi <- NA }
+   if(length(doi) == 0){ doi <- "NA" }
 
    ## F) Pages
 
