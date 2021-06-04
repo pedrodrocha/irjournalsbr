@@ -204,6 +204,7 @@ muralinternacional <- function(
       rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
       rvest::html_attr('content') -> pdf_url
 
+    if(length(pdf_url) == 0){pdf_url <- "NA" }
 
     build_data(
       authors = authors,
