@@ -201,11 +201,21 @@ oikos <- function(
       x = x,
       pdf_url = pdf_url,
       full_text = full_text,
-      journal = "Oikos - Revista de Economia Política Internacional",
+      journal = "Oikos - Revista de Economia Politica Internacional",
       issn = '2316-8323'
     )
 
   })
 
-  oikos
+  oikos %>%
+    dplyr::group_by(TI) %>%
+    dplyr::mutate(
+      AU = toString(AU),
+      OG = toString(OG)
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      AB = stringr::str_squish(AB)
+    )
 }
