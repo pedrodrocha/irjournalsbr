@@ -1,3 +1,15 @@
+#' Title
+#'
+#' @param year
+#' @param volume
+#' @param number
+#' @param silence
+#' @param full_text
+#'
+#' @return
+#' @export
+#'
+#' @examples
 conjunturaglobal <- function(
   year, volume, number, silence = TRUE, full_text = FALSE
 ) {
