@@ -53,7 +53,6 @@ meridiano47 <- function(
 
 
   # PART 1: EDITIONS LINKS
-
   url_archive <- "https://periodicos.unb.br/index.php/MED/issue/archive"
 
   url_archive_lido <- xml2::read_html(url_archive)
@@ -64,10 +63,20 @@ meridiano47 <- function(
 
 
   url_archive_lido %>%
+    rvest::html_nodes(".media-heading .title") %>%
+    rvest::html_text() %>%
+    stringr::str_remove_all("\\n|\\t") %>%
+    stringr::str_replace("\\\\", "-")  %>%
+    Filter(x = ., function(x) { stringr::str_detect(x, '[0-9]{4}')}) %>%
+    stringr::str_to_lower(.) -> eds1
+
+  url_archive_lido %>%
     rvest::html_nodes(".lead") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\\n|\\t") %>%
-    stringr::str_replace("\\\\", "-") -> eds
+    stringr::str_replace("\\\\", "-") %>%
+    Filter(x = ., f = function(x) { !stringr::str_detect(x, 'v. [0-9]{2} \\([0-9]{4}\\)')})-> eds2
+  eds <- c(eds1,eds2)
 
   tibble::tibble(url = primary_url,
                  editions = eds) %>%
@@ -148,6 +157,7 @@ meridiano47 <- function(
     url_lido %>%
       rvest::html_node('meta[name="DC.Title"]') %>%
       rvest::html_attr('content') -> title
+    if(length(title) == 0){ title <- "NA" }
 
     ## D) Abstract
 
@@ -261,6 +271,16 @@ meridiano47 <- function(
 
   })
 
-  meridiano47
+  meridiano47 %>%
+    dplyr::group_by(TI) %>%
+    dplyr::mutate(
+      AU = toString(AU),
+      OG = toString(OG)
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      AB = stringr::str_squish(AB)
+    )
 
 }
