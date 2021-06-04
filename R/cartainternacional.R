@@ -44,7 +44,7 @@ cartainternacional <- function(
     rvest::html_text()   %>%
     tibble::as_tibble() %>%
     dplyr::mutate(value = stringr::str_remove_all(value,"\\n|\\t")) %>%
-    dplyr::filter(value != "Carta Internacional") %>%
+    dplyr::filter(!stringr::str_detect(value,"Carta Internacional")) %>%
     dplyr::bind_rows(eds_series,.) %>%
     dplyr::pull(value) -> eds
 
@@ -254,6 +254,16 @@ cartainternacional <- function(
 
  })
 
- cartainternacional
+ cartainternacional %>%
+   dplyr::group_by(TI) %>%
+   dplyr::mutate(
+     AU = toString(AU),
+     OG = toString(OG)
+   ) %>%
+   dplyr::distinct() %>%
+   dplyr::ungroup() %>%
+   dplyr::mutate(
+     AB = stringr::str_squish(AB)
+   )
 
 }
