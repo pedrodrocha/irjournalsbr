@@ -120,9 +120,9 @@ cartainternacional <- function(
 
 
    if(length(filiation) == 0){
-     filiation <- NA
+     filiation <- "NA"
    } else if(length(filiation) != length(authors)) {
-     filiation <- NA
+     filiation <- "NA"
    }
 
    ## C) Title
@@ -137,7 +137,7 @@ cartainternacional <- function(
      rvest::html_nodes('meta[name="DC.Language"]') %>%
      rvest::html_attr('content') -> language
 
-   if(length(language) == 0){ language <- NA }
+   if(length(language) == 0){ language <- "NA" }
 
    ## D) Abstract
 
@@ -146,7 +146,7 @@ cartainternacional <- function(
      rvest::html_attr('content') -> abstract_texto
 
    if(length(abstract_texto) == 0){
-     abstract <- NA
+     abstract <- "NA"
    } else{
      url_lido %>%
        rvest::html_nodes('meta[name="DC.Description"]') %>%
@@ -157,13 +157,13 @@ cartainternacional <- function(
        dplyr::pull(texto) -> abstract
   }
 
-  if(abstract == "") {abstract <- NA}
+  if(abstract == "") {abstract <- "NA"}
 
 
 
 
 
-   if(length(abstract) == 0){ abstract <- NA }
+   if(length(abstract) == 0){ abstract <- "NA" }
 
    ## E) DOI
 
@@ -179,7 +179,7 @@ cartainternacional <- function(
      rvest::html_nodes('meta[name="DC.Identifier.pageNumber"]') %>%
      rvest::html_attr('content') -> pages
 
-   if(length(pages) == 0){ pages <- NA }
+   if(length(pages) == 0){ pages <- "NA" }
 
 
 
@@ -212,9 +212,9 @@ cartainternacional <- function(
      paste0(., collapse = ', ')-> keywords
 
    if(keywords == ""){
-     keywords <- NA
+     keywords <- "NA"
    } else if(length(keywords) == 0) {
-     keywords <- NA
+     keywords <- "NA"
    }
 
    ## L) References
@@ -223,7 +223,7 @@ cartainternacional <- function(
      rvest::html_nodes(".references") %>%
      rvest::html_text() -> references
 
-   if(length(references) == 0){references <- NA }
+   if(length(references) == 0){references <- "NA" }
 
    ## M) Url_pdf
 
