@@ -201,14 +201,7 @@ contextointernacional <- function(
         xml2::xml_find_all(.,'//lpage') %>%
         xml2::xml_text() -> lpage
 
-      # if(length(fpage) == 0 | length(lpage) == 0) {
-      #   pages <- "NA"
-      # } else if((is.na(fpage))|(is.na(lpage))){
-      #   pages <- "NA"
-      #
-      # } else {
-      #   pages <- paste0(fpage,"-",lpage)
-      # }
+
       if (length(fpage) > 1){
         pages <- "NA"
       } else if(length(fpage) == 0 | length(lpage) == 0) {

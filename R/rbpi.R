@@ -23,35 +23,46 @@ rbpi <- function(
   )
 
   # PART 1: EDITIONS LINKS
-  url_archive <- "https://www.scielo.br/scielo.php?script=sci_issues&pid=0034-7329&lng=en&nrm=iso"
+  url_archive <- "http://www.scielo.br/j/rbpi/grid"
 
   xml2::read_html(url_archive) %>%
-    rvest::html_nodes("b a") %>%
-    rvest::html_attr("href")  -> primary_url
+    rvest::html_nodes(".btn") %>%
+    rvest::html_attr("href") %>%
+    paste0("http://www.scielo.br",.) %>%
+    Filter(x = ., f = function(x) { stringr::str_detect(x, "v[0-9]{2}n") & !stringr::str_detect(x, "goto=previous")})  -> primary_url
 
   xml2::read_html(url_archive) %>%
-    rvest::html_nodes("table") %>%
-    rvest::html_table(fill = TRUE) %>%
-    .[[5]] %>%
-    dplyr::select(1:5) %>%
-    dplyr::slice(-1) %>%
-    tidyr::pivot_longer(cols = 3:5,
-                        names_to = "X",
-                        values_to = "numero",
-                        values_drop_na = TRUE) %>%
-    dplyr::select(-X) %>%
-    dplyr::rename(ano = "X1",
-                  vol = "X2") %>%
-    dplyr::mutate(ano = as.numeric(ano),
-                  vol = as.numeric(vol),
-                  numero = as.numeric(dplyr::if_else(numero == "special issue","3", numero))) %>%
-    dplyr::filter(numero %in% c("1","2","3")) %>%
+    rvest::html_nodes("tbody td:nth-child(1)") %>%
+    rvest::html_text() -> anos
 
-    dplyr::mutate(url = primary_url) %>%
-    dplyr::filter(ano %in% year &
-                    numero %in% number &
-                    vol %in% volume) %>%
-    dplyr::pull(url)  -> primary_url
+  xml2::read_html(url_archive) %>%
+    rvest::html_nodes("tbody th") %>%
+    rvest::html_text() %>%
+    stringr::str_squish() -> volumes
+
+
+  xml2::read_html(url_archive) %>%
+    rvest::html_nodes("tbody .left") %>%
+    rvest::html_text() %>%
+    stringr::str_squish() %>%
+    stringr::str_replace(.,"n[:alnum:]{5} especial","3") %>%
+    stringr::str_replace_all(.," ", ",") -> numeros
+
+
+  tibble::tibble(
+    ano  = anos,
+    vol = volumes,
+    numero = numeros
+  )  %>%
+    tidyr::separate_rows(numero, sep = ",") -> ano_vol_year
+
+  tibble::tibble(
+    url = primary_url
+  ) %>%
+    dplyr::distinct() %>%
+    dplyr::bind_cols(ano_vol_year) %>%
+    dplyr::filter(ano %in% year & numero %in% number & vol %in% volume) %>%
+    dplyr::pull(url)-> primary_url
 
   # PART II: ARTICLES LINKS
 
@@ -59,14 +70,15 @@ rbpi <- function(
     url_lido <- xml2::read_html(x)
 
     url_lido %>%
-      rvest::html_nodes(".content div a") %>%
+      rvest::html_nodes(".links a") %>%
       rvest::html_attr("href") %>%
-      tibble::as_tibble() %>%
-      dplyr::filter(!stringr::str_detect(value,"(.pdf)|(abstract)|(javascript)")) %>%
-      dplyr::pull(value)
+      Filter(x = .,f = function(x) { !stringr::str_detect(x,'abstract') & !stringr::str_detect(x,'pdf')})  %>%
+      paste0("http://www.scielo.br",.)
 
   }) %>%
     purrr::flatten_chr()
+
+
 
   # PART III: SCRAPPING METADATA
 
@@ -79,51 +91,19 @@ rbpi <- function(
 
 
     url_lido %>%
-      rvest::html_nodes(xpath = "//div[@class='box']") %>%
-      rvest::html_nodes("a") %>%
-      rvest::html_attr("href") %>%
-      tibble::tibble() %>%
-      dplyr::filter(stringr::str_detect(.,"XML")) %>%
-      purrr::flatten_chr() %>%
+      rvest::html_nodes('meta[name="citation_xml_url"]') %>%
+      rvest::html_attr('content') %>%
       xml2::read_xml() -> xml
-
-    if(suppressWarnings(stringr::str_detect(xml[1], "Error"))){
-      usethis::ui_warn(paste0('O xml do artigo ', x, " está quebrado"))
-
-      build_data(
-        authors = "NA",
-        filiation = "NA",
-        title = article_title,
-        abstract = "NA",
-        keywords = "NA",
-        references = "NA",
-        pages = "NA",
-        year = "NA",
-        volume = "NA",
-        number = "NA",
-        language = "NA" ,
-        doi = "NA",
-        x = x,
-        pdf_url = "NA",
-        full_text = "NA",
-        journal ="Revista Brasileira de Política Internacional",
-        issn = "0034-7329"
-      )
-
-    }
-
 
 
 
     #Qual o idioma?
     language <- stringr::str_sub(x, start= -2,end= -1)
 
-
-    xml %>%
-      # Pegar sempre sÃ³ o primeiro, porque vai estar no idioma em que o artigo foi
-      # escrito
-      xml2::xml_find_first(., ".//article-title") %>%
-      xml2::xml_text() -> article_title
+    url_lido %>%
+      rvest::html_node('h1.article-title') %>%
+      rvest::html_text() %>%
+      stringr::str_squish() -> article_title
 
     if(article_title == "Erratum" | article_title == "Manual das organizações internacionais"){
       build_data(
@@ -142,25 +122,12 @@ rbpi <- function(
         x = x,
         pdf_url = "NA",
         full_text = "NA",
-        journal ="Revista Brasileira de Política Internacional",
+        journal ="Revista Brasileira de Politica Internacional",
         issn = "0034-7329"
       )
 
 
     } else {
-
-      ## A) Filiation
-      xml %>%
-        xml2::xml_find_all(., ".//aff//institution") %>%
-        xml2::xml_text() %>%
-        stringr::str_remove(.,",") %>%
-        stringr::str_trim() -> filiation
-
-      for (i in seq_along(filiation)) {
-        if(filiation[i] == "") {filiation <- "NA"}
-      }
-
-
 
       ## B) Authors
       xml %>%
@@ -176,32 +143,36 @@ rbpi <- function(
         authors[i] <- glue::glue("{primeiro_nome[i]} {sobrenome[i]}")
       }
 
+      ## A) Filiation
+      xml %>%
+        xml2::xml_find_all(., "//institution[@content-type='orgname']") %>%
+        xml2::xml_text() %>%
+        stringr::str_remove(.,",") %>%
+        stringr::str_trim() -> filiation
+
+      for (i in seq_along(filiation)) {
+        if(filiation[i] == "") {filiation <- "NA"}
+      }
+
+      if(length(filiation) != length(authors)){
+        filiation <- filiation[1:length(authors)]
+      }
+
+
       ## C) Title
 
       xml %>%
-        xml2::xml_find_all(.,'.//article-meta//article-title') %>%
-        xml2::xml_text() -> title_texto
-
-      xml %>%
-        xml2::xml_find_all(.,'.//article-meta//article-title') %>%
-        xml2::xml_attr('lang') -> title_lang
-
-
-      if(length(title_texto) == 0){
-        title <- "NA"
-      } else{
-
-        tibble::tibble(texto = title_texto, lingua = title_lang) %>%
-          dplyr::filter(lingua == language) %>%
-          dplyr::pull(texto) -> title
-      }
+        # Pegar sempre só o primeiro, porque vai estar no idioma em que o artigo foi
+        # escrito
+        xml2::xml_find_first(., ".//article-title") %>%
+        xml2::xml_text() -> title
 
       if (length(title) == 0) { title <- "NA"}
       else if(title == "") {title <- "NA"}
 
       ## D) Abstract
       xml %>%
-        # Pegar sempre sÃ³ o primeiro, porque vai estar no idioma em que o artigo foi
+        # Pegar sempre só o primeiro, porque vai estar no idioma em que o artigo foi
         # escrito
         xml2::xml_find_first(., ".//abstract") %>%
         xml2::xml_text() -> abstract
@@ -225,14 +196,17 @@ rbpi <- function(
         xml2::xml_find_all(.,'//lpage') %>%
         xml2::xml_text() -> lpage
 
-      if(length(fpage) == 0 | length(lpage) == 0) {
+
+      if (length(fpage) > 1){
+        pages <- "NA"
+      } else if(length(fpage) == 0 | length(lpage) == 0) {
         pages <- "NA"
       } else if((is.na(fpage))|(is.na(lpage))){
         pages <- "NA"
-
       } else {
         pages <- paste0(fpage,"-",lpage)
       }
+
 
       ## G) Language
 
@@ -245,7 +219,7 @@ rbpi <- function(
 
       ## I) Number
       xml %>%
-        xml2::xml_find_first(., ".//numero") %>%
+        xml2::xml_find_first(., ".//issue") %>%
         xml2::xml_text() -> number
 
       ## J) Year
@@ -256,18 +230,14 @@ rbpi <- function(
 
       ## K) Keywords
       xml %>%
-        xml2::xml_find_all(., ".//kwd-group") %>%
-        xml2::xml_find_all(.,".//kwd") -> keyword_bruto
+        xml2::xml_find_all("//kwd-group[@xml:lang = 'en']") %>%
+        xml2::xml_find_all(.,".//kwd")  %>%
+        xml2::xml_text() %>%
+        stringr::str_c(.,collapse = '; ')-> keywords
 
-      if (length(keyword_bruto) == 0){
-        keywords <- "NA"
-      } else {
 
-        keyword_bruto[xml2::xml_attr(keyword_bruto, "lng")== language] %>%
-          xml2::xml_text()-> keywords
-        keywords %>%
-          toString() -> keywords
-      }
+
+      if (length(keywords) == 0){ keywords <- "NA" }
 
       ## L) References
       xml %>%
@@ -278,27 +248,37 @@ rbpi <- function(
         references <- "NA"
       } else {
 
-        references <- vector(mode = "character", length = length(references_bruto))
-
-        for (i in seq_along(references_bruto)){
-
-          references[i] <- glue::glue("//t{references_bruto[i]}//t")
-        }
-
-        references %>%
-          toString() -> references
+        references <- stringr::str_c(references_bruto, collapse =  '//t ') %>% stringr::str_squish()
       }
 
 
       ## M) Url_pdf
       url_lido %>%
-        rvest::html_nodes(xpath = "//div[@class='box']") %>%
-        rvest::html_nodes("a") %>%
-        rvest::html_attr("href") %>%
-        tibble::tibble() %>%
-        dplyr::filter(stringr::str_detect(.,"pdf")) %>%
-        purrr::flatten_chr() %>%
-        stringr::str_c('https://www.scielo.br',.) -> pdf_url
+        rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
+        rvest::html_attr('content') -> pdf_url
+
+      build_data(
+        authors = authors,
+        filiation = filiation,
+        title = title,
+        abstract = abstract,
+        keywords = keywords,
+        references = references,
+        pages = pages,
+        year = year,
+        volume = volume,
+        number = number,
+        language = language ,
+        doi = doi,
+        x = x,
+        pdf_url = pdf_url,
+        full_text = full_text,
+        journal = "Contexto Internacional",
+        issn = "1982-0240"
+      )
+
+
+
 
 
       build_data(
@@ -326,6 +306,18 @@ rbpi <- function(
     }
 
   })
-  rbpi
+  rbpi %>%
+    dplyr::group_by(TI) %>%
+    dplyr::mutate(
+      AU = toString(AU),
+      OG = toString(OG)
+    ) %>%
+    dplyr::distinct() %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      AB = stringr::str_squish(AB),
+      DE = dplyr::na_if(DE, "")
+    ) %>%
+    dplyr::mutate(dplyr::across(where(is.character), ~dplyr::na_if(.,"NA")))
 
 }
