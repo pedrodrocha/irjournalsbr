@@ -131,16 +131,6 @@ contextointernacional <- function(
 
     } else {
 
-      ## A) Filiation
-      xml %>%
-        xml2::xml_find_all(., "//institution[@content-type='orgname']") %>%
-        xml2::xml_text() %>%
-        stringr::str_remove(.,",") %>%
-        stringr::str_trim() -> filiation
-
-      for (i in seq_along(filiation)) {
-        if(filiation[i] == "") {filiation <- "NA"}
-      }
 
 
 
@@ -157,6 +147,22 @@ contextointernacional <- function(
       for(i in seq_along(sobrenome)){
         authors[i] <- glue::glue("{primeiro_nome[i]} {sobrenome[i]}")
       }
+
+      ## A) Filiation
+      xml %>%
+        xml2::xml_find_all(., "//institution[@content-type='orgname']") %>%
+        xml2::xml_text() %>%
+        stringr::str_remove(.,",") %>%
+        stringr::str_trim() -> filiation
+
+      for (i in seq_along(filiation)) {
+        if(filiation[i] == "") {filiation <- "NA"}
+      }
+
+      if(length(filiation) != length(authors)){
+        filiation <- filiation[1:length(authors)]
+      }
+
 
       ## C) Title
 
