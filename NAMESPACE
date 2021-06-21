@@ -3,6 +3,7 @@
 export("%>%")
 export(austral)
 export(bjir)
+export(bjlas)
 export(cartainternacional)
 export(conjunturaglobal)
 export(conjunturainternacional)

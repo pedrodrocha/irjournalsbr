@@ -159,11 +159,7 @@ cartainternacional <- function(
 
   if(abstract == "") {abstract <- "NA"}
 
-
-
-
-
-   if(length(abstract) == 0){ abstract <- "NA" }
+  if(length(abstract) == 0){ abstract <- "NA" }
 
    ## E) DOI
 
