@@ -204,27 +204,27 @@ bjlas <- function(
       rvest::html_attr('content') %>%
       paste0(., collapse = ', ')-> keywords
 
-    if(keywords == ""){
+    if(length(keywords) == 0){
       url_lido %>%
         rvest::html_nodes('.keywords .value') %>%
         rvest::html_text() %>%
         stringr::str_remove_all("\\n|\\t") -> keywords
 
-      if(keywords == ""){
+      if(length(keywords) == 0){
         keywords <- "NA"
-      } else if(length(keywords) == 0) {
+      } else if(keywords == "") {
         keywords <- "NA"
       }
-    } else if(length(keywords) == 0) {
+    } else if(keywords == "") {
 
       url_lido %>%
         rvest::html_nodes('.keywords .value') %>%
         rvest::html_text() %>%
         stringr::str_remove_all("\\n|\\t") -> keywords
 
-      if(keywords == ""){
+      if(length(keywords) == 0){
         keywords <- "NA"
-      } else if(length(keywords) == 0) {
+      } else if(keywords == "") {
         keywords <- "NA"
       }
     }
