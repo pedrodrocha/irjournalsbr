@@ -28,7 +28,7 @@ contextointernacional <- function(
   url_archive <- "http://www.scielo.br/j/cint/grid"
 
   xml2::read_html(url_archive) %>%
-    rvest::html_nodes(".btn") %>%
+    rvest::html_nodes(".left .btn") %>%
     rvest::html_attr("href") %>%
     paste0("http://www.scielo.br",.) %>%
     Filter(x = ., f = function(x) { stringr::str_detect(x, "v[0-9]{2}n") & !stringr::str_detect(x, "goto=previous")})  -> primary_url
@@ -290,8 +290,8 @@ contextointernacional <- function(
   contextointernacional %>%
     dplyr::group_by(TI) %>%
     dplyr::mutate(
-      AU = toString(AU),
-      OG = toString(OG)
+      AU = stringr::str_c(AU,collapse = ";"),
+      OG = stringr::str_c(OG,collapse = ";"),
     ) %>%
     dplyr::distinct() %>%
     dplyr::ungroup() %>%

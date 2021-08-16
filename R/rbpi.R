@@ -26,7 +26,7 @@ rbpi <- function(
   url_archive <- "http://www.scielo.br/j/rbpi/grid"
 
   xml2::read_html(url_archive) %>%
-    rvest::html_nodes(".btn") %>%
+    rvest::html_nodes(".left .btn") %>%
     rvest::html_attr("href") %>%
     paste0("http://www.scielo.br",.) %>%
     Filter(x = ., f = function(x) { stringr::str_detect(x, "v[0-9]{2}n") & !stringr::str_detect(x, "goto=previous")})  -> primary_url
@@ -297,7 +297,7 @@ rbpi <- function(
         x = x,
         pdf_url = pdf_url,
         full_text = full_text,
-        journal ="Revista Brasileira de Política Internacional",
+        journal ="Revista Brasileira de Politica Internacional",
         issn = "0034-7329"
       )
 
@@ -309,8 +309,8 @@ rbpi <- function(
   rbpi %>%
     dplyr::group_by(TI) %>%
     dplyr::mutate(
-      AU = toString(AU),
-      OG = toString(OG)
+      AU = stringr::str_c(AU,collapse = ";"),
+      OG = stringr::str_c(OG,collapse = ";"),
     ) %>%
     dplyr::distinct() %>%
     dplyr::ungroup() %>%
