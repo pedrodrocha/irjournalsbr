@@ -291,7 +291,7 @@ contextointernacional <- function(
     dplyr::group_by(TI) %>%
     dplyr::mutate(
       AU = stringr::str_c(AU,collapse = ";"),
-      OG = stringr::str_c(OG,collapse = ";"),
+      OG = stringr::str_c(OG,collapse = ";")
     ) %>%
     dplyr::distinct() %>%
     dplyr::ungroup() %>%

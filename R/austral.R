@@ -216,8 +216,8 @@ austral <- function(
   austral %>%
   dplyr::group_by(TI) %>%
     dplyr::mutate(
-      AU = toString(AU),
-      OG = toString(OG),
+      AU = stringr::str_c(AU,collapse = ";"),
+      OG = stringr::str_c(OG,collapse = ";"),
       TI = stringr::str_to_title(TI)
     ) %>%
     dplyr::distinct() %>%

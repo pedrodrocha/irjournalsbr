@@ -276,8 +276,8 @@ meridiano47 <- function(
   meridiano47 %>%
     dplyr::group_by(TI) %>%
     dplyr::mutate(
-      AU = toString(AU),
-      OG = toString(OG)
+      AU = stringr::str_c(AU,collapse = ";"),
+      OG = stringr::str_c(OG,collapse = ";")
     ) %>%
     dplyr::distinct() %>%
     dplyr::ungroup() %>%
