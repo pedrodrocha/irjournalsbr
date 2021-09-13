@@ -204,7 +204,7 @@ oikos <- function(
       pdf_url = pdf_url,
       full_text = full_text,
       journal = "Oikos - Revista de Economia Politica Internacional",
-      issn = '2316-8323'
+      issn = '1808-0235'
     )
 
   })
