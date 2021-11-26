@@ -55,7 +55,7 @@ meridiano47 <- function(
   # PART 1: EDITIONS LINKS
   url_archive <- "https://periodicos.unb.br/index.php/MED/issue/archive"
 
-  url_archive_lido <- xml2::read_html(url_archive)
+  url_archive_lido <- httr::GET(url_archive)
   url_archive_lido %>%
     rvest::html_nodes("#main-content .title") %>%
     rvest::html_attr("href")  -> primary_url
@@ -99,7 +99,7 @@ meridiano47 <- function(
 
   articles_url <- purrr::map(primary_url, function(x) {
 
-    url_lido <- xml2::read_html(x)
+    url_lido <- httr::GET(x)
 
     url_lido %>%
       rvest::html_nodes('.media-heading a') %>%
@@ -131,7 +131,8 @@ meridiano47 <- function(
       usethis::ui_info(paste0('Currently scraping: ', x))
     }
 
-    url_lido <- xml2::read_html(x)
+    url_lido <- httr::GET(x) %>%
+      httr::content()
 
     ## A) Filiation
 

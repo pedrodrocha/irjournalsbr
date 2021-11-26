@@ -18,5 +18,6 @@ Imports:
     usethis,
     pdftools,
     assertthat,
-    glue
-RoxygenNote: 7.1.1
+    glue,
+    httr
+RoxygenNote: 7.1.2
