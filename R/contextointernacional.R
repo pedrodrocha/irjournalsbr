@@ -88,6 +88,8 @@ contextointernacional <- function(
       usethis::ui_info(paste0('Currently scraping: ', x))
     }
 
+    Sys.sleep(3)
+
     url_lido <- xml2::read_html(x)
 
 
