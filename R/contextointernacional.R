@@ -90,8 +90,8 @@ contextointernacional <- function(
 
     Sys.sleep(3)
 
-    url_lido <- xml2::read_html(x)
-
+    url_lido <- httr::GET(x) %>%
+      httr::content()
 
     url_lido %>%
       rvest::html_nodes('meta[name="citation_xml_url"]') %>%
@@ -174,8 +174,11 @@ contextointernacional <- function(
         xml2::xml_find_first(., ".//article-title") %>%
         xml2::xml_text() -> title
 
-      if (length(title) == 0) { title <- "NA"}
-      else if(title == "") {title <- "NA"}
+      if (length(title) == 0) {
+        title <- "NA"
+      }  else if(title == "") {
+        title <- "NA"
+      }
 
       ## D) Abstract
       xml %>%
