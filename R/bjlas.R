@@ -46,6 +46,7 @@ bjlas <- function(
       eds = dplyr::case_when(
         stringr::str_detect(eds,"China") ~ "v. 19 n. 37 (2020)",
         stringr::str_detect(eds,"Movimentos") ~ "v. 17 n. 32 (2018)",
+        stringr::str_detect(eds,'Trabalho e proteção social na América Latina') ~ "v.20 n. 40 (2021)",
         TRUE ~ eds
       )
     ) %>%
@@ -267,6 +268,8 @@ bjlas <- function(
     )
 
     })
+
+
 
   bjlas %>%
     dplyr::group_by(TI) %>%
