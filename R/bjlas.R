@@ -26,6 +26,7 @@ bjlas <- function(
 
   # PART 1: EDITIONS LINKS
 
+
   url_archive <- c(
     "https://www.revistas.usp.br/prolam/issue/archive",
     "https://www.revistas.usp.br/prolam/issue/archive/2"
@@ -46,7 +47,7 @@ bjlas <- function(
       eds = dplyr::case_when(
         stringr::str_detect(eds,"China") ~ "v. 19 n. 37 (2020)",
         stringr::str_detect(eds,"Movimentos") ~ "v. 17 n. 32 (2018)",
-        stringr::str_detect(eds,'Trabalho e') ~ "v. 40 n. 20 (2021)",
+        stringr::str_detect(eds,'Trabalho e') ~ "v. 20 n. 40 (2021)",
         TRUE ~ eds
       )
     ) %>%
@@ -241,7 +242,7 @@ bjlas <- function(
     ## M) Url_pdf
 
     url_lido %>%
-      rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
+      rvest::html_node('meta[name="citation_pdf_url"]') %>%
       rvest::html_attr('content') -> pdf_url
 
     if(length(pdf_url) == 0){pdf_url <- "NA" }
