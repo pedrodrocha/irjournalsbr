@@ -88,7 +88,7 @@ contextointernacional <- function(
       usethis::ui_info(paste0('Currently scraping: ', x))
     }
 
-    Sys.sleep(3)
+    Sys.sleep(4)
 
     url_lido <- httr::GET(x) %>%
       httr::content()
