@@ -57,7 +57,7 @@ bjir <- function(
     dplyr::mutate(
 
       editions = ifelse(
-        editions == "Hegemonia, disputas hegemônicas e interregno hegemônico. A resistência da ordem americana e os desafios para os seus potenciais rivais",
+        editions == stringr::str_detect(editions,"Hegemonia"),
         "v. 7 n. 3 (2018)", editions
       ),
       editions = ifelse(
