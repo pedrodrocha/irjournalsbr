@@ -60,6 +60,10 @@ bjir <- function(
         editions == "Hegemonia, disputas hegemônicas e interregno hegemônico. A resistência da ordem americana e os desafios para os seus potenciais rivais",
         "v. 7 n. 3 (2018)", editions
       ),
+      editions = ifelse(
+        editions == "30 anos do Mercosul",
+        "v. 10 n. 1 (2021)", editions
+      ),
       vol = stringr::str_extract(editions, "(v. [0-9]{2})|(v. [0-9]{1})") %>%
         stringr::str_replace_all(.,'v. ','') %>%
         as.integer(.),
