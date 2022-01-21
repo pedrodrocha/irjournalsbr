@@ -25,21 +25,20 @@ moncoes <- function(
 
   # PART 1: EDITIONS LINKS
 
-  url_archive <- "http://ojs.ufgd.edu.br/index.php/moncoes/issue/archive"
+  url_archive <- "https://ojs.ufgd.edu.br/index.php/moncoes/issue/archive"
 
   url_archive_lido <- xml2::read_html(url_archive)
 
-  url_archive_lido %>%
-    rvest::html_nodes("h4") %>%
-    rvest::html_nodes("a") %>%
-    rvest::html_attr("href") -> primary_url
-
-
-  url_archive_lido %>%
-    rvest::html_nodes("h4") %>%
-    rvest::html_nodes("a") %>%
+  xml2::read_html(url_archive) %>%
+    rvest::html_nodes('.series') %>%
     rvest::html_text() %>%
-    stringr::str_remove(":(.*)") -> eds
+    stringr::str_remove_all("\\n|\\t") -> eds
+
+  xml2::read_html(url_archive) %>%
+    rvest::html_nodes('.obj_issue_summary .title') %>%
+    rvest::html_attr('href') -> primary_url
+
+
 
 
   tibble::tibble(url = primary_url,
@@ -54,7 +53,6 @@ moncoes <- function(
       ano = stringr::str_extract(editions,"[0-9]{4}") %>%
         as.double(.),
       ano = dplyr::case_when(
-
         vol == 4 ~ 2015,
         vol == 3 ~ 2014,
         vol == 2 ~ 2013,
@@ -70,6 +68,7 @@ moncoes <- function(
     dplyr::pull(url) -> primary_url
 
 
+
   # PART II: ARTICLES LINKS
 
   articles_url <- purrr::map(primary_url, function(x) {
@@ -77,11 +76,11 @@ moncoes <- function(
     url_lido <- xml2::read_html(x)
 
     url_lido %>%
-      rvest::html_nodes('.tocTitle a') %>%
+      rvest::html_nodes('.title a') %>%
       rvest::html_attr('href')  -> links
 
     url_lido %>%
-      rvest::html_nodes('.tocTitle a') %>%
+      rvest::html_nodes('.title a') %>%
       rvest::html_text()  %>%
       stringr::str_remove_all("\\n|\\t")-> names
 
@@ -90,9 +89,6 @@ moncoes <- function(
       links = links,
       names = names
     ) %>%
-      dplyr::filter(
-        !stringr::str_detect(names, '(edição completa)|(Edição Completa)')
-      ) %>%
       dplyr::pull(links)
 
   }) %>%
@@ -121,13 +117,14 @@ moncoes <- function(
 
     url_lido %>%
       rvest::html_nodes('meta[name="citation_author"]') %>%
-      rvest::html_attr('content') -> authors
-
+      rvest::html_attr('content') %>%
+      stringr::str_trim() -> authors
 
     if(length(filiation) == 0){
       filiation <- NA
     } else if(length(filiation) != length(authors)) {
       filiation <- NA
+
     }
 
     ## C) Title
@@ -139,7 +136,7 @@ moncoes <- function(
     ## D) Abstract
 
     url_lido %>%
-      rvest::html_nodes("#articleAbstract div") %>%
+      rvest::html_node(".abstract") %>%
       rvest::html_text() -> abstract
 
     if(length(abstract) == 0){ abstract <- NA }
@@ -200,21 +197,16 @@ moncoes <- function(
     ## K) Keywords
 
     url_lido %>%
-      rvest::html_nodes('meta[name="DC.Subject"]') %>%
-      rvest::html_attr('content') %>%
-      paste0(., collapse = ', ')-> keywords
+      rvest::html_nodes(".keywords .value") %>%
+      rvest::html_text() %>%
+      stringr::str_remove_all("\\n|\\t") -> keywords
 
-    if(keywords == ""){
-      keywords <- NA
-    } else if(length(keywords) == 0) {
-      keywords <- NA
-    }
+    if(length(keywords) == 0){keywords <- NA }
 
     ## L) References
 
     url_lido %>%
-      rvest::html_nodes(xpath = "//div[@id='articleCitations']") %>%
-      rvest::html_nodes("p") %>%
+      rvest::html_nodes(".value p") %>%
       rvest::html_text() %>%
       paste0("\\t", .,"\\t") %>%
       toString() -> references
