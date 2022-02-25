@@ -24,19 +24,34 @@ estudosinternacionais <- function(
 
   # PART 1: EDITIONS LINKS
 
-  url_archive <- "http://periodicos.pucminas.br/index.php/estudosinternacionais/issue/archive"
+  url_archive_1 <- "http://periodicos.pucminas.br/index.php/estudosinternacionais/issue/archive"
+  url_archive_2 <- 'http://periodicos.pucminas.br/index.php/estudosinternacionais/issue/archive/2'
 
-  url_archive_lido <-  xml2::read_html(url_archive)
+  url_archive_lido_1 <-  xml2::read_html(url_archive_1)
+  url_archive_lido_2 <-  xml2::read_html(url_archive_2)
 
 
-  xml2::read_html(url_archive) %>%
+
+  url_archive_lido_1 %>%
     rvest::html_nodes('.series') %>%
     rvest::html_text() %>%
-    stringr::str_remove_all("\\n|\\t") -> eds
+    stringr::str_remove_all("\\n|\\t") -> eds_1
+  url_archive_lido_2 %>%
+    rvest::html_nodes('.series') %>%
+    rvest::html_text() %>%
+    stringr::str_remove_all("\\n|\\t") -> eds_2
+  eds <- c(eds_1, eds_2)
 
-  xml2::read_html(url_archive) %>%
+
+  url_archive_lido_1 %>%
     rvest::html_nodes('#pkp_content_main .title') %>%
-    rvest::html_attr('href') -> primary_url
+    rvest::html_attr('href') -> primary_url_1
+
+  url_archive_lido_2 %>%
+    rvest::html_nodes('#pkp_content_main .title') %>%
+    rvest::html_attr('href') -> primary_url_2
+  primary_url <- c(primary_url_1,primary_url_2)
+
 
 
 
@@ -241,6 +256,7 @@ estudosinternacionais <- function(
     )
 
   })
+
 
   estudosinternacionais  %>%
     dplyr::group_by(TI) %>%

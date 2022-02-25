@@ -78,6 +78,11 @@ contextointernacional <- function(
 
   }) %>%
     purrr::flatten_chr()
+  
+    tibble::tibble(articles_url) %>%
+    dplyr::filter(articles_url != "http://www.scielo.br") %>%
+    dplyr::pull(articles_url) -> articles_url
+
 
   tibble::tibble(articles_url) %>%
     dplyr::filter(articles_url != "http://www.scielo.br") %>%
