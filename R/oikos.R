@@ -185,7 +185,7 @@ oikos <- function(
       rvest::html_attr('href') %>%
       stringr::str_replace(.,"view","download") %>%
       stringr::str_replace(.,'downloadIssue','download')-> pdf_url
-<<<<<<< HEAD
+
 
 
     if(length(pdf_url) == 0){pdf_url <- "NA"}
