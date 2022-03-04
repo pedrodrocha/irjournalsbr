@@ -190,6 +190,9 @@ austral <- function(
     if(language == 'pt') { pdf_url <- pdf_url[1]} # Portuguese pdf
     else if(language == 'en') { pdf_url <- pdf_url[2]} # English pdf
 
+    if(length(pdf_url == 0)){pdf_url <- "NA"}
+    if(pdf_url == ""){pdf_url <- "NA"}
+
 
     build_data(
       authors = authors,

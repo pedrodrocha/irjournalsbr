@@ -318,6 +318,10 @@ luanova <- function(
       purrr::flatten_chr() %>%
       stringr::str_c('https://www.scielo.br',.) -> pdf_url
 
+    if(pdf_url == ""){pdf_url <- "NA"}
+    if(length(pdf_url == 0)){pdf_url <- "NA"}
+
+
     build_data(
       authors = authors,
       filiation = filiation,

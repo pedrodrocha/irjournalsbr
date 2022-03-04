@@ -181,10 +181,15 @@ oikos <- function(
     ## M) Url_pdf
 
     url_lido %>%
-      rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
-      rvest::html_attr('content') -> pdf_url
+      rvest::html_nodes('.file') %>%
+      rvest::html_attr('href') %>%
+      stringr::str_replace(.,"view","download") %>%
+      stringr::str_replace(.,'downloadIssue','download')-> pdf_url
 
-    if(length(pdf_url) == 0){ pdf_url <- NA }
+
+    if(length(pdf_url) == 0){pdf_url <- "NA"}
+    if(pdf_url == ""){pdf_url <- "NA"}
+
 
 
     build_data(
