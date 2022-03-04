@@ -79,7 +79,7 @@ contextointernacional <- function(
   }) %>%
     purrr::flatten_chr()
 
-  tibble::tibble(articles_url) %>%
+    tibble::tibble(articles_url) %>%
     dplyr::filter(articles_url != "http://www.scielo.br") %>%
     dplyr::pull(articles_url) -> articles_url
 
@@ -177,7 +177,7 @@ contextointernacional <- function(
       ## C) Title
 
       xml %>%
-        # Pegar sempre só o primeiro, porque vai estar no idioma em que o artigo foi
+        # Pegar sempre sÃ³ o primeiro, porque vai estar no idioma em que o artigo foi
         # escrito
         xml2::xml_find_first(., ".//article-title") %>%
         xml2::xml_text() -> title
@@ -190,7 +190,7 @@ contextointernacional <- function(
 
       ## D) Abstract
       xml %>%
-        # Pegar sempre só o primeiro, porque vai estar no idioma em que o artigo foi
+        # Pegar sempre sÃ³ o primeiro, porque vai estar no idioma em que o artigo foi
         # escrito
         xml2::xml_find_first(., ".//abstract") %>%
         xml2::xml_text() -> abstract
@@ -270,10 +270,14 @@ contextointernacional <- function(
       }
 
 
-      ## M) Url_pdf
+      ## M) pdf_url
       url_lido %>%
         rvest::html_nodes('meta[name="citation_pdf_url"]') %>%
         rvest::html_attr('content') -> pdf_url
+
+      if(length(pdf_url) == 0){pdf_url <- "NA"}
+      if(pdf_url == ""){pdf_url <- "NA"}
+
 
       build_data(
         authors = authors,
@@ -312,6 +316,6 @@ contextointernacional <- function(
       AB = stringr::str_squish(AB),
       DE = dplyr::na_if(DE, "")
     ) %>%
-    dplyr::mutate(dplyr::across(where(is.character), ~dplyr::na_if(.,"NA")))
+  dplyr::mutate(dplyr::across(where(is.character), ~dplyr::na_if(.,"NA")))
 
 }
