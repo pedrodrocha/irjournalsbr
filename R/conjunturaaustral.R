@@ -46,22 +46,40 @@ conjunturalaustral <- function(
 
 
   # PART 1: EDITIONS LINKS
-  url_archive <- "https://seer.ufrgs.br/ConjunturaAustral/issue/archive"
-
-  url_archive <- xml2::read_html(url_archive)
-
-  url_archive %>%
-    rvest::html_nodes("h4 a") %>%
-    rvest::html_attr("href") -> primary_url
+  base <- "https://seer.ufrgs.br/index.php/ConjunturaAustral/issue/archive/"
+  url_archive <- stringr::str_c(base,c('1','2','3','4'))
 
 
-  url_archive %>%
-    rvest::html_nodes("h4 a") %>%
-    rvest::html_text() %>%
-    stringr::str_remove(":(.*)") -> eds
+  grab_ed_links <- function(archive){
 
-  tibble::tibble(url = primary_url,
-                 editions = eds) %>%
+    url_lido <- xml2::read_html(archive)
+
+    url_lido %>%
+      rvest::html_nodes('.title') %>%
+      rvest::html_text() %>%
+      stringr::str_remove_all("\\n|\\t") -> eds
+
+    url_lido %>%
+      rvest::html_nodes('.title') %>%
+      rvest::html_attr('href') -> primary_url
+
+    tibble::tibble(url = primary_url,
+                   editions = eds)
+
+  }
+
+
+
+  purrr::map_df(url_archive, grab_ed_links) %>%
+    dplyr::mutate(
+      editions = dplyr::case_when(
+        stringr::str_detect(editions,"O SUL GLOBAL PENSADO") ~ "v. 12 n. 59 (2021)",
+        stringr::str_detect(editions,"Dez anos de Conjuntura Austral") ~ "v. 11 n. 55 (2020)",
+        stringr::str_detect(editions,"Especial Diplomacia") ~ "v. 11 n. 54 (2020)",
+        stringr::str_detect(editions,"Especial BRICS") ~ "v. 11 n. 53 (2020)",
+        TRUE ~ editions
+      )
+    ) %>%
     dplyr::mutate(
       vol = stringr::str_extract(editions, "(v. [0-9]{2})|(v. [0-9]{1})") %>%
         stringr::str_replace_all(.,'v. ','') %>%
@@ -69,13 +87,13 @@ conjunturalaustral <- function(
       n = stringr::str_extract(editions,'(n. [0-9]{2}-[0-9]{2})|(n. [0-9]{1}-[0-9]{2})|((n. [0-9]{1}-[0-9]{1}))|(n. [0-9]{2})|(n. [0-9]{1})') %>%
         stringr::str_replace_all(.,'n. ',''),
       ano = stringr::str_extract(editions,"[0-9]{4}") %>%
-        as.double(.),
-      url = paste0(url, "/showToc")
+        as.double(.)
     ) %>%
     dplyr::filter(ano %in% year &
                     n %in% number &
                     vol %in% volume) %>%
     dplyr::pull(url) -> primary_url
+
 
   # PART II: ARTICLES LINKS
 
@@ -84,26 +102,23 @@ conjunturalaustral <- function(
     url_lido <- xml2::read_html(x)
 
     url_lido %>%
-      rvest::html_nodes('.tocTitle a') %>%
-      rvest::html_attr('href')  -> links
+      rvest::html_nodes(".title a") %>%
+      rvest::html_attr("href") -> links
 
     url_lido %>%
-      rvest::html_nodes('.tocTitle a') %>%
-      rvest::html_text()  %>%
-      stringr::str_remove_all("\\n|\\t")-> names
-
+      rvest::html_nodes(".title a") %>%
+      rvest::html_text() %>%
+      stringr::str_remove_all("\\n|\\t") -> names
 
     tibble::tibble(
       links = links,
       names = names
     ) %>%
-      dplyr::filter(
-        !stringr::str_detect(names, 'EDIÇÃO COMPLETA')
-      ) %>%
       dplyr::pull(links)
 
   }) %>%
     purrr::flatten_chr()
+
 
   conjunturaaustral <- purrr::map_dfr(articles_url, function(x) {
     if(!isTRUE(silence)) {
@@ -117,6 +132,13 @@ conjunturalaustral <- function(
     url_lido %>%
       rvest::html_nodes('meta[name="citation_author_institution"]') %>%
       rvest::html_attr('content') -> filiation
+
+    if (length(filiation) == 0) {
+      url_lido %>%
+        rvest::html_nodes('.affiliation') %>%
+        rvest::html_text() %>%
+        stringr::str_remove_all("\\n|\\t") -> filiation
+    }
 
 
     ## B) Authors
@@ -141,10 +163,18 @@ conjunturalaustral <- function(
     ## D) Abstract
 
     url_lido %>%
-      rvest::html_nodes("#articleAbstract div") %>%
+      rvest::html_nodes(".abstract p+ p") %>%
       rvest::html_text() -> abstract
 
-    if(length(abstract) == 0){ abstract <- NA }
+    if(length(abstract) == 0){
+      url_lido %>%
+        rvest::html_nodes(".abstract p") %>%
+        rvest::html_text() -> abstract
+    }
+
+    if(length(abstract) == 0){
+      abstract <- NA
+    }
 
     ## E) DOI
 
@@ -194,30 +224,31 @@ conjunturalaustral <- function(
     ## K) Keywords
 
     url_lido %>%
-      rvest::html_nodes('meta[name="DC.Subject"]') %>%
+      rvest::html_nodes('meta[name="citation_keywords"]') %>%
       rvest::html_attr('content') -> keywords
 
-    teste_keywords <- paste0(keywords, collapse = ', ')
-
-    if(teste_keywords == ""){
-      keywords <- NA
-    } else if(length(teste_keywords) == 0) {
+    if(length(keywords) == 0){
       keywords <- NA
     } else {
-      url_lido %>%
-        rvest::html_nodes('meta[name="DC.Subject"]') %>%
-        rvest::html_attr('xml:lang') -> keywords_lang
-
-      tibble::tibble(keywords = keywords, lang = keywords_lang) %>%
-        dplyr::filter(lang == language) %>%
-        dplyr::pull(keywords) %>%
-        paste0(., collapse = ', ')-> keywords
-
+      Filter(x = keywords, f = function(x) { x != "" }) %>%
+        stringr::str_c(.,collapse = ';') -> keywords
     }
+
+
 
     ## L) References
 
-    references <- NA
+    url_lido %>%
+      rvest::html_nodes('meta[name="citation_reference"]') %>%
+      rvest::html_attr('content') -> references
+
+    if(length(references ) == 0){
+      references  <- NA
+    } else {
+      Filter(x = references, f = function(x) { x != "" }) %>%
+        stringr::str_c(.,collapse = '//t') -> references
+    }
+
 
     ## M) Url_pdf
 
@@ -227,7 +258,6 @@ conjunturalaustral <- function(
 
     if(length(pdf_url) == 0){pdf_url <- "NA"}
     if(pdf_url == ""){pdf_url <- "NA"}
-
 
     build_data(
       authors = authors,
