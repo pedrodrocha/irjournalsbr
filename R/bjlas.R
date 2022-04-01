@@ -245,8 +245,8 @@ bjlas <- function(
       rvest::html_node('meta[name="citation_pdf_url"]') %>%
       rvest::html_attr('content') -> pdf_url
 
-    if(length(pdf_url) == 0){pdf_url <- "NA"}
-    if(pdf_url == ""){pdf_url <- "NA"}
+    if(length(pdf_url) == 0){pdf_url <- ""}
+
 
 
 

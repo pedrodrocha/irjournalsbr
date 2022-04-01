@@ -188,8 +188,7 @@ oikos <- function(
 
 
 
-    if(length(pdf_url) == 0){pdf_url <- "NA"}
-    if(pdf_url == ""){pdf_url <- "NA"}
+    if(length(pdf_url) == 0){pdf_url <- ""}
 
 
 
