@@ -197,10 +197,17 @@ bjir <- function(
 
     ## K) Keywords
 
+    # url_lido %>%
+    #   rvest::html_nodes('meta[name="DC.Subject"]') %>%
+    #   rvest::html_attr('content') %>%
+    #   paste0(., collapse = ';')-> keywords
+
     url_lido %>%
-      rvest::html_nodes('meta[name="DC.Subject"]') %>%
-      rvest::html_attr('content') %>%
-      paste0(., collapse = ', ')-> keywords
+      rvest::html_nodes('.keywords .value')  %>%
+      rvest::html_text() %>%
+      stringr::str_squish() %>%
+      stringr::str_replace_all(.,'(\\.)|(,)',';') -> keywords
+
 
     if(keywords == ""){
       keywords <- NA
