@@ -170,7 +170,7 @@ oikos <- function(
     url_lido %>%
       rvest::html_nodes('meta[name="DC.Subject"]') %>%
       rvest::html_attr('content') %>%
-      paste0(., collapse = ', ')-> keywords
+      paste0(., collapse = ';')-> keywords
 
     if(keywords == ""){keywords <- NA}
 

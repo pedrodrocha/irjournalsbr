@@ -55,12 +55,12 @@ conjunturalaustral <- function(
     url_lido <- xml2::read_html(archive)
 
     url_lido %>%
-      rvest::html_nodes('.title') %>%
+      rvest::html_nodes('.obj_issue_summary .title') %>%
       rvest::html_text() %>%
       stringr::str_remove_all("\\n|\\t") -> eds
 
     url_lido %>%
-      rvest::html_nodes('.title') %>%
+      rvest::html_nodes('.obj_issue_summary .title') %>%
       rvest::html_attr('href') -> primary_url
 
     tibble::tibble(url = primary_url,

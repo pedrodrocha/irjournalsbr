@@ -172,9 +172,54 @@ rbed <- function(
     url_lido %>%
       rvest::html_nodes('meta[name="DC.Subject"]') %>%
       rvest::html_attr('content') %>%
-      paste0(., collapse = ', ')-> keywords
+      stringr::str_replace_all(.,'(\\.)|(,)',';') %>%
+      paste0(., collapse = '; ')-> keywords
 
-    if(keywords == ""){keywords <- NA}
+
+
+
+    if(length(keywords) == 0){
+      url_lido %>%
+        rvest::html_nodes('#articleAbstract p+ p')  %>%
+        rvest::html_text() %>%
+        stringr::str_to_lower() %>%
+        stringr::str_remove('-') %>%
+        stringr::str_remove("(palavraschave:)|(keywords:)|(palabrasclave:)") %>%
+        stringr::str_squish() %>%
+        stringr::str_replace_all(.,'(\\.)|(,)',';')  %>%
+        paste0(., collapse = '; ') -> keywords
+
+      if(length(keywords) > 0){
+        keywords <- "NA"
+      } else if(length(keywords) > 3) {
+        keywords <- "NA"
+      } else if(keywords == ""){
+        keywords <- "NA"
+      }
+
+
+    } else if(keywords == "") {
+
+      url_lido %>%
+        rvest::html_nodes('#articleAbstract p+ p')  %>%
+        rvest::html_text() %>%
+        stringr::str_to_lower() %>%
+        stringr::str_remove('-') %>%
+        stringr::str_remove("(palavraschave:)|(keywords:)|(palabrasclave:)") %>%
+        stringr::str_squish() %>%
+        stringr::str_replace_all(.,'(\\.)|(,)',';')  %>%
+        paste0(., collapse = '; ')-> keywords
+
+
+      if(length(keywords) > 0){
+        keywords <- "NA"
+      } else if(length(keywords) > 3) {
+        keywords <- "NA"
+      } else if(keywords == ""){
+        keywords <- "NA"
+      }
+    }
+
 
     ## L) References
     url_lido %>%

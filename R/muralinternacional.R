@@ -174,13 +174,17 @@ muralinternacional <- function(
       url_lido %>%
         rvest::html_nodes('meta[name="DC.Subject"]') %>%
         rvest::html_attr('content') %>%
-        paste0(., collapse = ', ')-> keywords
+        paste0(., collapse = ';')-> keywords
 
     } else{
       url_lido %>%
-        rvest::html_nodes("#articleAbstract p:nth-child(4)") %>%
+        rvest::html_nodes('#articleAbstract p:nth-child(4)')  %>%
         rvest::html_text() %>%
-        stringr::str_remove_all("\\n|\\t") -> keywords
+        stringr::str_to_lower() %>%
+        stringr::str_remove('-') %>%
+        stringr::str_remove("(palavraschave:)|(keywords:)|(palabrasclave:)") %>%
+        stringr::str_squish() %>%
+        stringr::str_replace_all(.,'(\\.)|(,)',';') -> keywords
     }
 
     if(length(keywords) == 0){keywords <- "NA" }
